@@ -79,8 +79,8 @@ flowchart TB
 Java 契约(命名待冻结):
 
 - `CaliberManager`(SimpleJsonResourceReloadListener): `getGunCalibers(rl) -> Set<rl>`, `getAmmoCaliber(rl) -> rl`, `getAmmoProfile(rl) -> AmmoProfile`, `getGunModifier(rl) -> GunDamageModifier`; 未命中走自动派生。
-- 已装弹种 NBT 访问器: `getLoadedAmmoId(stack) / setLoadedAmmoId(stack, rl)`(NBT 键如 `TacAmmoReload:LoadedAmmo`)。
-- Mixin 目标(已核实): `com.tacz.guns.api.item.nbt.AmmoItemDataAccessor#isAmmoOfGun`; `com.tacz.guns.entity.EntityKineticBullet`(构造器 / `getDamage` / `onHitEntity`)。目标待核实: 换弹搜索 `com.tacz.guns.entity.shooter.LivingEntityAmmoCheck`(精确方法); 发射构造子弹处(类/方法)。
+- 已装弹匣 NBT 访问器(**逐发序列**, 支持彩虹弹): `getLoadedSequence(stack) -> List<(ammoId,count)>`(RLE 游程编码) / `setLoadedSequence(...)` / `popNextRound(stack) -> ammoId`(发射时出队)。NBT 键如 `TacAmmoReload:LoadedSeq`。单一弹种 = 长度为 1 的退化序列; 与 `IGun.currentAmmoCount` 保持 sum == count。
+- Mixin 目标(已核实): `com.tacz.guns.api.item.nbt.AmmoItemDataAccessor#isAmmoOfGun`; `com.tacz.guns.api.item.nbt.AmmoBoxItemDataAccessor#isAmmoBoxOfGun`(弹药盒/包同样改口径匹配); `com.tacz.guns.entity.EntityKineticBullet`(构造器 / `getDamage` / `onHitEntity`)。目标待核实: 真实换弹消耗与序列写入(换弹状态机在 shooter, `LivingEntityAmmoCheck` 仅 needCheckAmmo/consumesAmmoOrNot 辅助); 发射出队处(类/方法)。
 
 ## 6. 风险与边界
 
@@ -92,6 +92,9 @@ Java 契约(命名待冻结):
 | 与 TacZ 配件 modifyProperty 伤害修正叠加冲突 | M | 明确组合顺序: 弹药基础 -> 枪固定/百分比 -> 配件修饰 |
 | 全量自动派生的正确性 | M | 派生 = 原 ammoId; 未配置即等价原版, 再逐口径显式覆盖 |
 | 建整套 TacZ 格式弹药(各口径 HP/SP/FMJ/BP)的内容量 | M | 独立内容任务; 用模板 + 数据生成批量产出 |
+| 逐发弹匣序列 NBT 的客户端/服务端同步与体积 | M | RLE 游程编码; 随 currentAmmoCount 一起同步; 上限校验 |
+| 弹药包容器 GUI(NBT 序列化存储 + 5 格幽灵配置槽)复杂度 | M | 见第 10 节; 存储区无 slot(光标点击存入) + 数据渲染; 幽灵槽只存过滤器 |
+| 压弹图案循环填装可能死循环(库存耗尽) | L | 一整轮无进展即跳出; 见第 10 节算法 |
 
 **Boundaries —— 本项目不做**: 不改后坐/散布/射速/换弹时序算法; 不做弹药新渲染体系; 不动非 TacZ 的枪; 不改 TacZ 源码(仅 Mixin + 数据包)。
 
@@ -105,7 +108,10 @@ Java 契约(命名待冻结):
 | isAmmoOfGun = ammoId 精确相等 | verified | javap -c AmmoItemDataAccessor |
 | EntityKineticBullet 构造带 ammoId+GunData+BulletData; onHitEntity/getDamage 为伤害点 | verified | javap EntityKineticBullet |
 | IGun 无 "已装弹种 id" getter | verified | javap IGun |
-| 换弹/背包搜索的精确方法, 是否复用 isAmmoOfGun | to-verify | 读 LivingEntityAmmoCheck / shooter 反编译 |
+| IAmmoBox 存储 = 单一 ammoId + count 序列化到 NBT(AMMO_ID_TAG/AMMO_COUNT_TAG) | verified | javap IAmmoBox, AmmoBoxItemDataAccessor |
+| isAmmoBoxOfGun 也按 gunId->ammoId 匹配(需同改口径) | verified | javap AmmoBoxItemDataAccessor |
+| LivingEntityAmmoCheck 仅 needCheckAmmo/consumesAmmoOrNot; 真实换弹搜索/消耗在别处 | verified | javap LivingEntityAmmoCheck |
+| 真实换弹消耗与序列写入的精确类/方法 | to-verify | 反编译 shooter 状态机 / ModernKineticGunItem 换弹 |
 | 发射处 bullet.ammoId 来源(改传已装弹种) | to-verify | 定位 shoot 构造子弹的类/方法 |
 | 客户端弹药计数/显示(ClientAmmoIndex)受影响面 | to-verify | 读 client.resource.index |
 
@@ -132,7 +138,6 @@ if (p != null) {
     this.damageAmount = p.damageCurve();                       // 基础伤害曲线来自弹药
     this.armorIgnore  = p.armorIgnore();                       // 护甲穿透仅弹药
     this.headShot     = p.headShotMultiplier();                // 爆头仅弹药
-}
     this.pierce       = p.pierce();                            // 穿透仅弹药 (初速/重力仍来自枪)
 }
 // 最终伤害 (在 getDamage(distance) 内组合):
@@ -141,7 +146,79 @@ if (p != null) {
 //   return base * (1 + m.percentDamage()) + m.flatDamage();
 ```
 
+## 10. 弹药包 (Ammo Pouch) 补充设计
+
+### 10.1 目标与定位
+
+新物品 `弹药包`: (1) 大容量 **序列化存储** 弹药; (2) 配置 **压弹顺序**(混装 / 彩虹弹)。参考 TacZ 现有 `AmmoBox`(单一 ammoId + count 序列化到 NBT, 已核实), 但本包为 **多弹种存储 + 5 格压弹图案**。
+
+示例: 图案 [1 号=5 HP, 2 号=5 AP], 一把 30 发上限的步枪重装后按 `5HP,5AP,5HP,5AP,5HP,5AP` 填装(图案循环直到弹匣满)。图案为空 -> 退回第 8 节默认顺序。
+
+### 10.2 数据模型 (NBT)
+
+- 存储区: `Map<ammoId, int>` 序列化到 NBT(把 TacZ AmmoBox 的 AMMO_ID_TAG/AMMO_COUNT_TAG 扩成列表); **容量上限在 `AmmoPouchItem` 物品类中定义**(Java 常量, 不走 config/数据; 不分 level)。
+- 压弹图案: `List<PatternEntry>`(<=5), `PatternEntry = { ammoId, perCycle }`。空图案 -> 默认顺序。
+- NBT 键: `TacAmmoReload:PouchStore`, `TacAmmoReload:PouchPattern`。
+
+### 10.3 GUI / 容器布局(从上到下)
+
+- **顶部 存储区**: 数据驱动展示已存弹种与数量; **无 slot**——光标持有弹药时点击存储区即存入(序列化进 NBT 计数并消耗光标上的弹药); 点击某已存弹种取回到光标。
+- **中部 5 个横向幽灵配置槽**: 每格设 {弹种过滤(放入一发弹药确定类型) + 每轮发数}; 例 1 号=5 HP, 2 号=5 AP。幽灵槽不消耗真实物品。
+- **底部 玩家背包**。
+- 菜单: `AmmoPouchMenu extends AbstractContainerMenu` + 服务端同步 NBT; 幽灵槽用自定义 Slot(不接收真实物品, 只记录 filter + count)。
+
+### 10.4 压弹图案算法(换弹时构建逐发序列)
+
+```java
+// 换弹: 依据弹药包图案构建逐发序列 (RLE)
+List<Round> buildSequence(Gun gun, Pouch pouch) {
+    int cap = gun.magazineCapacity();                     // GunData.ammoAmount / 扩容
+    Set<RL> cals = CaliberManager.getGunCalibers(gun.id());
+    List<PatternEntry> pat = pouch.pattern().stream()     // 只留口径 属于 枪口径集 的项
+        .filter(e -> cals.contains(CaliberManager.getAmmoCaliber(e.ammoId))).toList();
+    if (pat.isEmpty()) return defaultFill(gun, pouch, cap); // 第 8 节默认: 库存/背包顺序
+    List<Round> seq = new ArrayList<>();
+    while (seq.size() < cap) {
+        int before = seq.size();
+        for (PatternEntry e : pat) {
+            int take = min(e.perCycle, cap - seq.size(), pouch.store(e.ammoId));
+            for (int i = 0; i < take; i++) seq.add(new Round(e.ammoId));
+            pouch.consume(e.ammoId, take);
+            if (seq.size() == cap) break;
+        }
+        if (seq.size() == before) break;                  // 一整轮无进展 -> 库存耗尽, 停止
+    }
+    return seq;                                            // RLE 后写入 gun LoadedSeq NBT
+}
+```
+
+### 10.5 与基础设计的耦合(重要修正)
+
+- **枪 NBT 从 "单一已装弹种" 升级为 "逐发弹匣序列"**(第 5 节已更新): 彩虹弹要求每发记录各自弹种。发射(M3)出队下一发 -> 决定 bullet.ammoId -> 弹道(M4)。
+- 换弹来源选择: **弹药包必须放在快捷栏**才生效; 取快捷栏(槽 0-8)中第一个可用(能供该枪口径弹)的弹药包, 用其图案构建序列; 无可用包则回退第 8 节默认(背包顺序单一弹种)。
+- `isAmmoBoxOfGun` 同步改为口径匹配(第 7 节已核实)。
+
+### 10.6 接口契约(草案, 待冻结)
+
+- `AmmoPouchItem`(存储 + 图案 NBT 访问器): `getStore(stack) -> Map<rl,int>` / `deposit / withdraw` / `getPattern(stack) -> List<PatternEntry>` / `setPattern(...)`。
+- `AmmoPouchMenu` / `AmmoPouchScreen`(客户端)。
+- 换弹钩子(Mixin/事件): 在真实换弹消耗处优先咨询弹药包, 产出 `LoadedSeq`。
+
+### 10.7 已决策与待定
+
+已决策(2026-07-14):
+- **弹药包必须放在快捷栏**(槽 0-8)才生效; 换弹取快捷栏首个可用包, 不搜整背包。
+- **容量上限在 `AmmoPouchItem` 物品类中定义**(Java), 不走 config/数据; 不分 level。
+- **存储区无 slot**: 光标持弹点击存储区即存入(序列化进 NBT); 点击已存弹种取回光标。
+- **每轮发数(perCycle)** = 图案每格每轮循环填装的发数(例中的 5); 填装算法已用 `min(perCycle, 弹匣剩余, 库存)` 截断, 无需独立硬上限, UI 输入范围取 `1 .. 弹匣容量`。
+
+待定:
+- 存储区"取出"的精确手感(单发 / 整组 / Shift 全取)。
+- perCycle 的 UI 输入控件(数字框 / 滚轮 / 加减按钮)。
+
 ## Revision Log
 
 - 2026-07-14 — 初稿(Stage 1)。基于 javap 核实 TacZ 8141310 的弹药/伤害模型; 5 项高杠杆决策(弹道所有权反转 / 接受 Mixin / 全量迁移 / JSON 数据包 / 自动派生兼容)已与用户确认。
 - 2026-07-14 — 补充 4 项细节决策: 初速/重力归枪、穿透归弹药; 换弹暂用背包顺序; 新建整套 TacZ 格式弹药; 最终伤害 = 弹药基础 * (1 + 枪百分比) + 枪固定值。第 8 节开放问题全部结清。
+- 2026-07-14 — 新增第 10 节 弹药包(Ammo Pouch): 多弹种序列化存储 + 5 格压弹图案(彩虹弹)。驱动基础设计修正: 枪已装弹 NBT 由单一弹种升级为逐发序列(RLE); 新增 `isAmmoBoxOfGun` 口径匹配注入点; 核实 IAmmoBox / LivingEntityAmmoCheck。
+- 2026-07-14 — 弹药包细节定稿: 必须置于快捷栏才生效; 容量上限在 AmmoPouchItem 物品类中定义(不分 level); 存储区无 slot(光标持弹点击存入); 明确 perCycle 语义(每格每轮填装发数, 无独立硬上限)。第 10.7 节开放问题结清。

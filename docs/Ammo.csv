@@ -1,0 +1,34 @@
+﻿类别,口径,子弹型号
+手枪,7.62x25mm 托卡列夫,M856A1、M855A1、M995、LRNPC、LRN、FMJ43、AKBS、P gl、PT、Pst
+手枪,9x18mm 马卡洛夫,SP8、SP7、PSV、P、PSO、PS PPO、PRS、PPe、PPT、Pst、RG028、BZhT、PstM(PMM)、PBM
+手枪,9x19mm 帕拉贝伦,RIP、QuakeMaker、PSO gzh、Luger CCI、绿色曳光弹、FMJ M882、Pst、AP 6.3、7N31
+手枪,9x21mm Gyurza,7N42“凿刀”、7U4、SP12、SP11、SP10、SP13
+手枪,.357 马格南,Soft Point、Hollow Point、JHP、FMJ
+手枪,.45 ACP,RIP、Hydra-Shok、Lasermatch FMJ、FMJ、AP
+手枪,.50 AE,Hawk JSP、实心铜弹、JHP、FMJ
+手枪,20x1mm,塑料片
+PDW,4.6x30mm HK,Action SX、Subsonic SX、JSP SX、FMJ SX、AP SX
+PDW,5.7x28mm FN,R37.F、R37.X、SS198LF、SS197SR、SB193、L191、SS190
+步枪,5.45x39mm,HP、PRS、SP、US、T、FMJ、PS、PP、BP、BT、7N40、BS、7N39“针刺”
+步枪,5.56x45mm NATO,Warmage、HP、Mk 255 Mod 0、Mk 318 Mod 0 (SOST)、M856、FMJ、M855、M856A1、M855A1、M995、SSA AP
+步枪,6.8x51mm (.277 FURY),SIG FMJ、SIG Hybrid
+步枪,.300 Blackout,Whisper、V-Max、BPZ FMJ、M62 曳光弹、CBJ、AP
+步枪,.308 Marlin Express,ME LOKT、ME
+步枪,7.62x39mm,HP、SP、FMJ、US、T45M1、PS、PP gzh、BP、MAI AP
+步枪,7.62x51mm NATO,M80A1、Ultra Nosler、TCW SP、BPZ FMJ、M80、M62 曳光弹、M61、M993
+步枪,7.62x54R,HP BT、SP BT、FMJ、T-46M、LPS Gzh、7N1 狙击弹、7BT1、SNB、7N37
+步枪,.338 拉普阿马格南,TAC-X、UCW、FMJ、AP
+步枪,9x39mm,FMJ、SP-5、SPP、SP-6、PAB-9、BP
+步枪,.366 TKM,Geksa、FMJ、EKO、AP
+步枪,12.7x55mm,PS12A、PS12、PS12B
+步枪,.50 BMG,M903 SLAP、HP、M21、M33
+步枪,9.3x64mm (新增),SP、FMJ、7N33
+霰弹枪,12/70,5.25mm鹿弹、Magnum 8.5mm鹿弹、Express 6.5mm鹿弹、7mm鹿弹、“食人鱼”、箭形弹、RIP、SuperFormance 空尖独头弹、Grizzly 40 独头弹、Copper Sabot Premier 空尖独头弹、铅头弹、Dual Sabot 独头弹、Poleva-3 独头弹、FTX Custom Lite 独头弹、Poleva-6U 独头弹、.50 BMG 简易独头弹、AP-20 穿甲独头弹
+霰弹枪,20/70,箭形弹、“危险猎物”独头弹 (DGS)、TSS 穿甲独头弹、7.5mm鹿弹、5.6mm鹿弹、6.2mm鹿弹、7.3mm鹿弹、Devastator 独头弹、Poleva-3 独头弹、Star 独头弹、Poleva-6U 独头弹
+霰弹枪,23x75mm R,“红星”闪光弹、“破片-25”霰弹、“破片-10”霰弹、破障独头弹
+重机枪,12.7x108mm,B-32、BZT-44M
+榴弹,30x29mm,VOG-30
+榴弹,40x46mm,M386(HE)、M576(MP-APERS)、M381(HE)、M406(HE)、M441(HE)、M433 (HEDP)
+榴弹,40mm VOG-25,VOG-25 榴弹
+信号弹,26x75mm (SP-81),照明信号弹（酸绿/红色/白色/绿色/黄色）、信号弹（蓝）、信号弹（新年）*
+其他,72.5mm 火箭弹,ShG-2 反人员火箭弹
