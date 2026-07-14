@@ -1,0 +1,42 @@
+﻿# ===== Gradle =====
+.gradle/
+build/
+out/
+versions/*/build/
+versions/*/.gradle/
+
+# Keep the Gradle wrapper jar (required to build the project)
+!gradle/wrapper/gradle-wrapper.jar
+
+# ===== Stonecutter (version preprocessing cache) =====
+.stonecutter/
+
+# ===== Minecraft dev run output =====
+run/
+runs/
+logs/
+crash-reports/
+*.log
+
+# ===== Forge datagen hash cache (generated resources are committed, cache is not) =====
+src/generated/resources/.cache/
+
+# ===== IDE: IntelliJ IDEA =====
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# ===== IDE: Eclipse =====
+.settings/
+.classpath
+.project
+bin/
+
+# ===== IDE: VS Code =====
+.vscode/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.tacz_ammo_reload.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "tacz_ammo_reload.refmap.json",
+  "mixins": [],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
