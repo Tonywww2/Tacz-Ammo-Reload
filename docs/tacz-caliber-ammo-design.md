@@ -2,7 +2,7 @@
 
 > 目标: 把 TacZ 的 "枪 -> 单一弹药" 改为 "枪 -> 一个或多个口径, 口径 -> 多种弹种(HP/SP/FMJ/BP...)", 并把弹道/伤害数据从 "枪" 迁到 "弹药", 枪只保留伤害修正。
 >
-> In scope: 口径匹配层; 弹道所有权反转(弹药持有基础伤害/护甲穿透/爆头/距离衰减, 枪只有固定/百分比伤害修正); 全量迁移 TacZ 原版枪械与弹药; JSON 数据包驱动; 未配置内容按规则自动派生。
+> In scope: 口径匹配层; 弹道所有权反转(弹药持有基础伤害/护甲穿透/爆头/穿透/距离衰减, 枪持有初速/重力及固定/百分比伤害修正); 新建一整套 TacZ 格式弹药并全量迁移原版枪械; JSON 数据包驱动; 未配置内容按规则自动派生。
 >
 > **Non-goals**: 不改后坐力/散布/射速/换弹时序等系统本身; 不做新的弹药渲染/模型体系(复用 TacZ 显示); 不支持非 TacZ 的枪; 不新增联机协议(沿用 TacZ 的 NBT 同步); 不改 TacZ 源码(仅 Mixin + 本 mod 数据包)。
 >
@@ -25,7 +25,7 @@
 两个改动叠加:
 
 1. **口径层**: 在枪与弹药之间插入 "口径(caliber)"。枪声明可用口径集合; 弹药声明所属口径; 兼容 = 交集非空。
-2. **弹道所有权反转**: 基础战斗数值(基础伤害、护甲穿透、爆头倍率、距离衰减)迁到 **弹药**; 枪只保留 **固定伤害 +/-** 与 **百分比伤害 +/-** 两类修正, 移除枪上的护甲穿透/爆头等。最终值 = 弹药基础值 经 枪修正 组合。
+2. **弹道所有权反转**: 基础战斗数值(基础伤害、护甲穿透、爆头倍率、穿透、距离衰减)迁到 **弹药**; 枪只保留 **固定伤害** 与 **百分比伤害** 两类修正(初速/重力仍归枪, 移除枪上的护甲穿透/爆头/穿透)。**最终伤害 = (弹药基础) * (1 + 枪械百分比) + 枪械固定值**。
 
 落地靠 4 个已核实的注入点(Mixin) + 一个数据包驱动的 `CaliberManager`。
 
@@ -37,7 +37,7 @@
 flowchart TB
   subgraph Data["数据层 (本 mod JSON 数据包)"]
     C["calibers/ID.json\n口径元数据 + 默认弹道档"]
-    AP["ammo_profiles/ammoId.json\n所属口径 + 基础伤害/护甲穿透/爆头/距离衰减"]
+    AP["ammo_profiles/ammoId.json\n所属口径 + 基础伤害/护甲穿透/爆头/穿透pierce/距离衰减"]
     GM["gun_mappings/gunId.json\n可用口径列表 + 枪伤害修正(固定/百分比)"]
   end
   Data --> CM["CaliberManager (数据包重载监听)\n索引: gunId->口径 / ammoId->口径 / ammoId->弹道档 / gunId->修正"]
@@ -55,12 +55,12 @@ flowchart TB
 - **为何新增 "已装弹种" NBT**: `IGun` 无 "当前已装填弹药 id" 的 getter(已核实), 多弹种时必须记录装的是哪个, 供发射与显示。
 - **数据键用 TacZ 的 gunId/ammoId(ResourceLocation)**: 无法给 TacZ 的 POJO 加字段, 故用旁路映射按 id 关联。
 
-伤害组合公式(草案, Stage 2 细化):
+伤害组合公式(已定):
 
-- 基础: 弹药档的距离-伤害曲线 `damageAdjust`(或标量 `baseDamage`)。
-- 枪修正: `dmg' = dmg * (1 + 枪.percentDamage) + 枪.flatDamage`。
-- 护甲穿透 `armorIgnore`、爆头 `headShotMultiplier`: **仅来自弹药**。
-- 其余(射速/后坐/散布/换弹/初速/重力)保持在枪(初速/重力可选由口径覆盖, 见第 8 节)。
+- **最终伤害 = (弹药基础伤害) * (1 + 枪.percentDamage) + 枪.flatDamage**。基础伤害取弹药档距离-伤害曲线 `damageAdjust`(或标量 `baseDamage`)在当前距离的取值。
+- 护甲穿透 `armorIgnore`、爆头 `headShotMultiplier`、穿透 `pierce`: **仅来自弹药**。
+- **初速 `speed` / 重力 `gravity` 留在枪**; 射速/后坐/散布/换弹时序同样留在枪。
+- 配件修饰(TacZ `modifyProperty`)在上式之后叠加(先后顺序实现期核实)。
 
 ## 4. 依赖
 
@@ -72,7 +72,7 @@ flowchart TB
 数据 schema(键 = TacZ ResourceLocation):
 
 - caliber: `{ "name": string, "tooltip": string, "defaultProfile"?: AmmoProfile }`
-- ammo_profile(按弹药物品 id): `{ "caliber": rl, "baseDamage": float | "damageAdjust": [[dist,dmg], ...], "armorIgnore": float, "headShotMultiplier": float, "speed"?: float, "pierce"?: int }`
+- ammo_profile(按弹药物品 id): `{ "caliber": rl, "baseDamage": float | "damageAdjust": [[dist,dmg], ...], "armorIgnore": float, "headShotMultiplier": float, "pierce": int }`  (初速/重力不在弹药, 归枪)
 - gun_mapping(按枪 id): `{ "calibers": [rl, ...], "flatDamage": float, "percentDamage": float }`
 - 自动派生: 缺省开启; 未命中显式配置时 口径 = 原 `ammoId`, 弹道档 = 由枪原始 `bulletData` 派生。
 
@@ -87,11 +87,11 @@ Java 契约(命名待冻结):
 | 风险 | 级别 | 缓解 |
 |---|---|---|
 | Mixin 随 TacZ 更新失效 | H | 锁版本; 集中 mixin; 每处 null 检查, 未命中回退原版逻辑 |
-| 多弹种时换弹 "装哪一种" 的 UX | M | 优先级 + 记忆上次 + 按键循环; 单独做 UX 子设计 |
+| 多弹种时换弹 "装哪一种" | L | 已定: 暂用背包扫描顺序取第一个口径匹配弹药(后续再加优先级/GUI) |
 | 已装弹种 NBT 客户端/服务端同步 | M | 沿用 TacZ 的 NBT 同步; getCommonGunIndex 为服务端权威 |
 | 与 TacZ 配件 modifyProperty 伤害修正叠加冲突 | M | 明确组合顺序: 弹药基础 -> 枪固定/百分比 -> 配件修饰 |
 | 全量自动派生的正确性 | M | 派生 = 原 ammoId; 未配置即等价原版, 再逐口径显式覆盖 |
-| 新弹种物品的配方/JEI/贴图工作量 | M | 见第 8 节: 复用 vs 新建 弹药物品 的取舍 |
+| 建整套 TacZ 格式弹药(各口径 HP/SP/FMJ/BP)的内容量 | M | 独立内容任务; 用模板 + 数据生成批量产出 |
 
 **Boundaries —— 本项目不做**: 不改后坐/散布/射速/换弹时序算法; 不做弹药新渲染体系; 不动非 TacZ 的枪; 不改 TacZ 源码(仅 Mixin + 数据包)。
 
@@ -109,12 +109,14 @@ Java 契约(命名待冻结):
 | 发射处 bullet.ammoId 来源(改传已装弹种) | to-verify | 定位 shoot 构造子弹的类/方法 |
 | 客户端弹药计数/显示(ClientAmmoIndex)受影响面 | to-verify | 读 client.resource.index |
 
-## 8. 开放问题(需用户/研究决策)
+## 8. 已决策(原开放问题, 2026-07-14 确认)
 
-- 初速/重力/穿透(pierce)归弹药(口径)还是留枪? 建议: 由弹药档可选覆盖, 缺省留枪。
-- 换弹选弹种的 UX(优先级 / 记忆上次 / GUI / 按键循环)取哪种?
-- 新弹种物品: 新建 `本mod:口径_型号` 独立物品, 还是复用/换皮 TacZ 现有弹药物品? (影响配方 / JEI / 贴图工作量)
-- 伤害组合顺序与配件修饰(`modifyProperty`)的先后关系。
+- 初速 `speed` / 重力 `gravity` **归枪**; 穿透 `pierce` **归弹药**。
+- 换弹选弹种: **暂用背包顺序**(扫描背包取第一个口径匹配的弹药; 暂不做优先级/记忆/GUI)。
+- 弹药内容: **新建一整套 TacZ 格式弹药**(作为本 mod 内置 TacZ gun pack), 覆盖各口径的 HP/SP/FMJ/BP 等型号; 我方 caliber / ammo_profile 侧车数据按其 ammoId 关联。
+- 伤害公式: **最终伤害 = (弹药基础) * (1 + 枪械百分比) + 枪械固定值**; 配件 `modifyProperty` 修饰在此之后叠加(先后顺序实现期核实)。
+
+剩余 to-verify(见第 7 节): 换弹搜索精确方法 / 发射处 ammoId 来源 / 客户端显示影响面。
 
 ## 9. 关键骨架(最风险处, 伪代码)
 
@@ -131,10 +133,15 @@ if (p != null) {
     this.armorIgnore  = p.armorIgnore();                       // 护甲穿透仅弹药
     this.headShot     = p.headShotMultiplier();                // 爆头仅弹药
 }
-GunDamageModifier m = CaliberManager.getGunModifier(this.gunId); // 枪: 固定 +/- , 百分比 +/-
-// 组合在 getDamage(...) 内: return m.apply(baseFromCurve(distance));
+    this.pierce       = p.pierce();                            // 穿透仅弹药 (初速/重力仍来自枪)
+}
+// 最终伤害 (在 getDamage(distance) 内组合):
+//   float base = baseFromCurve(this.damageAmount, distance);          // 弹药基础
+//   GunDamageModifier m = CaliberManager.getGunModifier(this.gunId);  // 枪: 百分比 + 固定
+//   return base * (1 + m.percentDamage()) + m.flatDamage();
 ```
 
 ## Revision Log
 
 - 2026-07-14 — 初稿(Stage 1)。基于 javap 核实 TacZ 8141310 的弹药/伤害模型; 5 项高杠杆决策(弹道所有权反转 / 接受 Mixin / 全量迁移 / JSON 数据包 / 自动派生兼容)已与用户确认。
+- 2026-07-14 — 补充 4 项细节决策: 初速/重力归枪、穿透归弹药; 换弹暂用背包顺序; 新建整套 TacZ 格式弹药; 最终伤害 = 弹药基础 * (1 + 枪百分比) + 枪固定值。第 8 节开放问题全部结清。
