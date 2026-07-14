@@ -73,6 +73,24 @@ dependencies {
         // 用户给的 ForgeGradle 写法 implementation fg.deobf(...) 在 Architectury Loom 下等价于
         // modImplementation（Loom 自动反混淆/重映射 mod 依赖）；curse.maven 坐标需上面的 CurseMaven 仓库。
         "modImplementation"("curse.maven:timeless-and-classics-zero-1028108:8141310")
+
+        // MixinExtras：必须用 -common（类直接在 jar 内）。-forge 变体把类 JiJ 内嵌在
+        // META-INF/jars/MixinExtras-*.jar，Loom dev 不解压 → com.llamalad7...Operation 找不到。
+        "forgeRuntimeLibrary"("io.github.llamalad7:mixinextras-common:0.3.6")
+
+        // TacZ 通过 JiJ 内嵌以下库；Loom dev 不解压内嵌 jar，需从 TacZ jar 抽到 libs/ 再显式补齐，
+        // 否则 TacZ 构造/加载期 NoClassDefFoundError（luaj / bcel / commons-math3）。参见 skill ref 11。
+        // 注意：本共享脚本应用于节点工程（versions/1.20.1-forge），相对 files("libs/..") 会指向
+        // versions/1.20.1-forge/libs（不存在）→ jar 不进 classpath。必须用 rootProject.files 指向根 libs/。
+        "forgeRuntimeLibrary"(rootProject.files("libs/luaj-core-3.0.8-figura.jar"))
+        "forgeRuntimeLibrary"(rootProject.files("libs/luaj-jse-3.0.8-figura.jar"))
+        "forgeRuntimeLibrary"(rootProject.files("libs/bcel-6.6.1.jar"))
+        "forgeRuntimeLibrary"(rootProject.files("libs/commons-math3-3.6.1.jar"))
+
+        // simplebedrockmodel 是 mod（TacZ 枪械客户端渲染依赖），需 Loom 重映射并按 mod 加载；
+        // 它内嵌的 mae 是纯动画数学库（同样从 JiJ 抽到 libs/ 补齐）。
+        "modRuntimeOnly"(rootProject.files("libs/simplebedrockmodel-2.2.2-forge+mc1.20.1.jar"))
+        "forgeRuntimeLibrary"(rootProject.files("libs/mae-1.1.2.jar"))
     }
 }
 

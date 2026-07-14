@@ -23,7 +23,7 @@ public class TaczAmmoReload {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     /** 构造本 mod 命名空间下的 ResourceLocation（Forge 构造器 / NeoForge 工厂）。 */
-    public static ResourceLocation rl(String path) {
+    public static ResourceLocation prefix(String path) {
         //? if forge {
         return new ResourceLocation(MODID, path);
         //?} else {
