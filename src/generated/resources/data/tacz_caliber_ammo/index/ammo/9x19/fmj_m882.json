@@ -1,11 +1,15 @@
 {
+  "accuracy": 0,
   "armorIgnore": 0.15,
   "baseDamage": 8.0,
   "caliber": "9x19",
   "display": "tacz:9mm_display",
   "headShotMultiplier": 1.4,
   "name": "ammo.tacz_caliber_ammo.9x19.fmj_m882",
+  "pelletCount": 1,
   "pierce": 1,
+  "recoil": 0,
   "sort": 37,
+  "speed": 385,
   "stack_size": 60
 }

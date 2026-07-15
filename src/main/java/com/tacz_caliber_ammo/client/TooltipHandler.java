@@ -53,38 +53,60 @@ public final class TooltipHandler {
         if (names.isEmpty()) {
             return noCaliberLine();
         }
-        return Component.translatable("tooltip.tacz_caliber_ammo.caliber", String.join(", ", names))
+        return Component.translatable("tooltip.tacz_caliber_ammo.caliber",
+                Component.literal(String.join(", ", names)).withStyle(ChatFormatting.GOLD))
                 .withStyle(ChatFormatting.GRAY);
     }
 
-    /** 弹药/弹药盒：显示口径 + 弹道档（若已配置）；未配置显示"未配置口径"。 */
+    /**
+     * 弹药/弹药盒：显示口径 + 弹道档（若已配置）；未配置显示"未配置口径"。标签深灰、具体数值白色；
+     * 插到 index 1（物品名下方第一行，与枪口径同在首行位置）。
+     */
     private static void appendAmmo(ResourceLocation ammoId, List<Component> lines) {
         if (ammoId == null) {
             return;
         }
+        List<Component> out = new ArrayList<>();
         ResourceLocation caliber = CaliberManager.getAmmoCaliber(ammoId);
         if (caliber == null || CaliberManager.NONE.equals(caliber)) {
-            lines.add(noCaliberLine());
-            return;
+            out.add(noCaliberLine());
+        } else {
+            out.add(valueLine("tooltip.tacz_caliber_ammo.caliber", CaliberManager.getCaliber(caliber).name()));
+            AmmoProfile p = CaliberManager.getAmmoProfile(ammoId);
+            if (p != null) {
+                out.add(valueLine("tooltip.tacz_caliber_ammo.damage", fmt(p.baseDamage())));
+                out.add(valueLine("tooltip.tacz_caliber_ammo.armor_ignore", percent(p.armorIgnore())));
+                out.add(valueLine("tooltip.tacz_caliber_ammo.headshot", fmt(p.headShotMultiplier())));
+                out.add(valueLine("tooltip.tacz_caliber_ammo.pierce", Integer.toString(p.pierce())));
+                if (p.speed() > 0f) {
+                    out.add(valueLine("tooltip.tacz_caliber_ammo.speed", fmt(p.speed()) + " m/s"));
+                }
+                if (p.pelletCount() > 1) {
+                    out.add(valueLine("tooltip.tacz_caliber_ammo.pellet_count", Integer.toString(p.pelletCount())));
+                }
+                out.add(signedValueLine("tooltip.tacz_caliber_ammo.recoil", p.recoilModifier()));
+                out.add(signedValueLine("tooltip.tacz_caliber_ammo.accuracy", p.accuracyModifier()));
+            }
         }
-        lines.add(Component.translatable("tooltip.tacz_caliber_ammo.caliber", CaliberManager.getCaliber(caliber).name())
-                .withStyle(ChatFormatting.GRAY));
-        AmmoProfile p = CaliberManager.getAmmoProfile(ammoId);
-        if (p != null) {
-            lines.add(Component.translatable("tooltip.tacz_caliber_ammo.damage", fmt(p.baseDamage()))
-                    .withStyle(ChatFormatting.DARK_GRAY));
-            lines.add(Component.translatable("tooltip.tacz_caliber_ammo.armor_ignore", percent(p.armorIgnore()))
-                    .withStyle(ChatFormatting.DARK_GRAY));
-            lines.add(Component.translatable("tooltip.tacz_caliber_ammo.headshot", fmt(p.headShotMultiplier()))
-                    .withStyle(ChatFormatting.DARK_GRAY));
-            lines.add(Component.translatable("tooltip.tacz_caliber_ammo.pierce", p.pierce())
-                    .withStyle(ChatFormatting.DARK_GRAY));
-        }
+        lines.addAll(Math.min(1, lines.size()), out);
+    }
+
+    /** "标签：值" 一行：标签浅灰、值橙色。 */
+    private static Component valueLine(String key, String value) {
+        return Component.translatable(key, Component.literal(value).withStyle(ChatFormatting.GOLD))
+                .withStyle(ChatFormatting.GRAY);
+    }
+
+    /** 同 valueLine，但数值按符号着色：正数绿、负数红、0 白（供后坐力/散布用）。 */
+    private static Component signedValueLine(String key, float v) {
+        ChatFormatting color = v > 0 ? ChatFormatting.GREEN : (v < 0 ? ChatFormatting.RED : ChatFormatting.WHITE);
+        return Component.translatable(key, Component.literal(signedPercent(v)).withStyle(color))
+                .withStyle(ChatFormatting.GRAY);
     }
 
     private static Component noCaliberLine() {
         return Component.translatable("tooltip.tacz_caliber_ammo.no_caliber")
-                .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC);
+                .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC);
     }
 
     /** 去尾零的浮点格式（5.0 -> "5", 7.5 -> "7.5"）。 */
@@ -105,5 +127,10 @@ public final class TooltipHandler {
     /** 0-1 -> 百分比（0.5 -> "50%"）。 */
     private static String percent(float v) {
         return fmt(v * 100f) + "%";
+    }
+
+    /** 带符号百分比（+8%、-15%、0%）；供后坐力/精度修正显示。 */
+    private static String signedPercent(float v) {
+        return (v > 0 ? "+" : "") + fmt(v) + "%";
     }
 }

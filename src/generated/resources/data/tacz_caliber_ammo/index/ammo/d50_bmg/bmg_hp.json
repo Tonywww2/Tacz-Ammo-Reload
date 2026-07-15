@@ -1,11 +1,15 @@
 {
+  "accuracy": 15,
   "armorIgnore": 0.4,
   "baseDamage": 36.5,
   "caliber": "d50_bmg",
   "display": "tacz:50bmg_display",
   "headShotMultiplier": 1.35,
   "name": "ammo.tacz_caliber_ammo.d50_bmg.bmg_hp",
+  "pelletCount": 1,
   "pierce": 1,
+  "recoil": 15,
   "sort": 153,
+  "speed": 880,
   "stack_size": 60
 }

@@ -290,7 +290,12 @@ public final class CaliberManager {
         float armorIgnore = getFloat(o, "armorIgnore", 0f);
         float headShot = getFloat(o, "headShotMultiplier", 1f);
         int pierce = o.has("pierce") ? o.get("pierce").getAsInt() : 1;
-        return new AmmoProfile(caliber, baseDamage, armorIgnore, headShot, pierce);
+        float recoilModifier = getFloat(o, "recoil", 0f);      // 后坐力%（带符号）
+        float accuracyModifier = getFloat(o, "accuracy", 0f);  // 精度%（带符号，可 >100）
+        float speed = getFloat(o, "speed", 0f);                // 初速原始值 m/s（0 = 不覆写）
+        int pelletCount = o.has("pelletCount") ? o.get("pelletCount").getAsInt() : 0; // 弹丸数（0 = 不覆写）
+        return new AmmoProfile(caliber, baseDamage, armorIgnore, headShot, pierce,
+                recoilModifier, accuracyModifier, speed, pelletCount);
     }
 
     private static GunDamageModifier parseGun(JsonElement el) {

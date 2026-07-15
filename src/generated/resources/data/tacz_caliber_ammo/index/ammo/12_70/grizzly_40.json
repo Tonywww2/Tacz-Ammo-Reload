@@ -1,11 +1,15 @@
 {
+  "accuracy": 80,
   "armorIgnore": 0.05,
   "baseDamage": 26.5,
   "caliber": "12_70",
   "display": "tacz:12g_display",
   "headShotMultiplier": 1.35,
   "name": "ammo.tacz_caliber_ammo.12_70.grizzly_40",
+  "pelletCount": 1,
   "pierce": 1,
+  "recoil": 20,
   "sort": 164,
+  "speed": 390,
   "stack_size": 60
 }

@@ -1,11 +1,15 @@
 {
+  "accuracy": -10,
   "armorIgnore": 0.9,
   "baseDamage": 22.5,
   "caliber": "d50_bmg",
   "display": "tacz:50bmg_display",
   "headShotMultiplier": 1.9,
   "name": "ammo.tacz_caliber_ammo.d50_bmg.bmg_m903_slap",
+  "pelletCount": 1,
   "pierce": 3,
+  "recoil": 28,
   "sort": 150,
+  "speed": 1220,
   "stack_size": 60
 }

@@ -1,11 +1,15 @@
 {
+  "accuracy": 0,
   "armorIgnore": 0.6,
   "baseDamage": 17.0,
   "caliber": "d338",
   "display": "tacz:338_display",
   "headShotMultiplier": 1.4,
   "name": "ammo.tacz_caliber_ammo.d338.lapua_magnum_fmj",
+  "pelletCount": 1,
   "pierce": 1,
+  "recoil": 0,
   "sort": 134,
+  "speed": 900,
   "stack_size": 60
 }

@@ -1,11 +1,15 @@
 {
+  "accuracy": 15,
   "armorIgnore": 0.15,
   "baseDamage": 14.0,
   "caliber": "d357",
   "display": "tacz:357mag_display",
   "headShotMultiplier": 1.65,
   "name": "ammo.tacz_caliber_ammo.d357.magnum_hollow_point",
+  "pelletCount": 1,
   "pierce": 1,
+  "recoil": 15,
   "sort": 50,
+  "speed": 481,
   "stack_size": 60
 }

@@ -13,6 +13,7 @@
     "ModernKineticGunScriptAPIMixin"
   ],
   "client": [
+    "client.CameraSetupEventMixin",
     "client.ClientGunTooltipMixin"
   ],
   "injectors": {

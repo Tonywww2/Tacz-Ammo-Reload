@@ -21,6 +21,7 @@ import com.tacz_caliber_ammo.caliber.Round;
 import com.tacz_caliber_ammo.client.TooltipHandler;
 import com.tacz_caliber_ammo.nbt.LoadedAmmoSequence;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -35,10 +36,10 @@ import net.minecraft.world.item.ItemStack;
 /**
  * TacZ 枪械 tooltip 两处改造:
  * <ul>
- *   <li>Task 1: 从 tooltip 去掉 damage / armorIgnore / headShotMultiplier 三行(伤害归弹药, 枪不再显示),
- *       并回收其纵向空隙 —— {@code @Inject(HEAD, cancellable)} 重画 {@code renderText}(照原布局但跳过这三行且压缩
- *       yOffset) + {@code @Inject(RETURN)} 缩小 {@code getHeight}(BASE_INFO -10, EXTRA_DAMAGE_INFO -20)。
- *       原 getHeight/renderText 用固定行高, 单纯把组件置空只会留空行, 故必须同时改高度与布局。</li>
+ *   <li>Task 1: 重画 {@code renderText} + 调 {@code getHeight} 精简枪 tooltip: 去 damage/armorIgnore/headShotMultiplier
+ *       (伤害归弹药)、去经验等级(levelInfo)与"按 Z 改造"提示(UPGRADES_TIP); 保留 类型(gunType)/移动速度(weight)。
+ *       配色(CR-11): 标签(口径/列名/类型标签)浅灰 0xAAAAAA; 值橙 GOLD(口径名/子弹 abbr/容量上限)、白 WHITE(子弹数量/容量当前数);
+ *       desc/类型名(青)/移速(红)/pack(蓝) 保留 TacZ 原样式。高度: BASE_INFO -20 / EXTRA_DAMAGE_INFO -20 / UPGRADES_TIP -14。</li>
  *   <li>Task 2: AMMO_INFO 区改为"口径行 + 两列表格"。第 1 行=枪口径(移自 TooltipHandler, {@link TooltipHandler#gunCaliberLine});
  *       其下为表格: A 列"容量"(列名 + 当前/上限弹量 ammoCountText), B 列"装填"(列名 + 弹匣内弹药明细 "{数量}x {abbr}",
  *       最多 5 行, 超 5 补 "...")。abbr 取本地化键 {@code ammo.<ns>.<路径(/换.)>.abbr}(无则回退路径段大写)。子弹与容量文字为白色。
@@ -55,17 +56,17 @@ public class ClientGunTooltipMixin {
     @Shadow
     private List<FormattedCharSequence> desc;
     @Shadow
-    private MutableComponent levelInfo;
-    @Shadow
     private MutableComponent gunType;
     @Shadow
     private MutableComponent weight;
     @Shadow
-    private MutableComponent tips;
-    @Shadow
     private MutableComponent packInfo;
     @Shadow
     private MutableComponent ammoCountText;
+    @Shadow
+    private MutableComponent levelInfo;
+    @Shadow
+    private MutableComponent tips;
     @Shadow
     private ItemStack gun;
     @Shadow
@@ -90,6 +91,10 @@ public class ClientGunTooltipMixin {
     @Unique
     private static final String TACZ_CALIBER_AMMO$COL_B_KEY = "tooltip.tacz_caliber_ammo.mag.loaded";
 
+    /** 标签浅灰 0xAAAAAA(口径/列名/类型标签)。数值白/橙由各行组件自带 WHITE/GOLD 样式决定。 */
+    @Unique
+    private static final int TACZ_CALIBER_AMMO$LABEL = 0xAAAAAA;
+
     // ---- Task 1a: 重画 renderText, 跳过 damage/armorIgnore/headShotMultiplier 三行并压缩纵向空隙 ----
     @Inject(method = "renderText", at = @At("HEAD"), cancellable = true, remap = true)
     private void taczCaliberAmmo$renderTextTrimmed(Font font, int pX, int pY, Matrix4f matrix4f,
@@ -98,57 +103,51 @@ public class ClientGunTooltipMixin {
         if (this.shouldShow(GunTooltipPart.DESCRIPTION) && this.desc != null) {
             yOffset += 2;
             for (FormattedCharSequence sequence : this.desc) {
-                font.drawInBatch(sequence, (float) pX, (float) yOffset, 0xAAAAAA, false, matrix4f, bufferSource,
-                        Font.DisplayMode.NORMAL, 0, 0xF000F0);
+                // 描述, TacZ 原为 0xAAAAAA
+                font.drawInBatch(sequence, (float) pX, (float) yOffset, 0x555555 , false, matrix4f,
+                        bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
                 yOffset += 10;
             }
         }
         if (this.shouldShow(GunTooltipPart.AMMO_INFO)) {
-            // AMMO_INFO 改为: 口径行(上) + 两列表格(A=容量: 列名/当前上限; B=装填: 列名/弹匣弹药明细)。子弹与容量文字白色。
+            // 口径行(上) + 两列表格(A=容量, B=装填)。标签浅灰; 容量=当前(白)/上限(橙); 子弹=数量(白)+abbr(橙)。
             Component caliber = this.taczCaliberAmmo$caliberLine();
-            List<String> bullets = this.taczCaliberAmmo$loadedAmmoLines();
+            List<Component> bullets = this.taczCaliberAmmo$loadedAmmoLines();
             if (caliber != null) {
-                font.drawInBatch(caliber, (float) pX, (float) yOffset, 0xFFFFFF, false, matrix4f, bufferSource,
-                        Font.DisplayMode.NORMAL, 0, 0xF000F0);
+                font.drawInBatch(caliber, (float) pX, (float) yOffset, TACZ_CALIBER_AMMO$LABEL, false, matrix4f,
+                        bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
                 yOffset += 10;
             }
             int colBx = pX + this.taczCaliberAmmo$colAWidth(font) + TACZ_CALIBER_AMMO$COLUMN_GAP;
-            font.drawInBatch(Component.translatable(TACZ_CALIBER_AMMO$COL_A_KEY), (float) pX, (float) yOffset, 0xAAAAAA,
-                    false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+            font.drawInBatch(Component.translatable(TACZ_CALIBER_AMMO$COL_A_KEY), (float) pX, (float) yOffset,
+                    TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             font.drawInBatch(Component.translatable(TACZ_CALIBER_AMMO$COL_B_KEY), (float) colBx, (float) yOffset,
-                    0xAAAAAA, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+                    TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             if (this.ammoCountText != null) {
-                font.drawInBatch(this.ammoCountText, (float) pX, (float) (yOffset + 10), 0xFFFFFF, false, matrix4f,
-                        bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+                font.drawInBatch(this.taczCaliberAmmo$capacityText(), (float) pX, (float) (yOffset + 10),
+                        TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             }
             for (int i = 0; i < bullets.size(); i++) {
-                font.drawInBatch(Component.literal(bullets.get(i)), (float) colBx, (float) (yOffset + 10 + i * 10),
-                        0xFFFFFF, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+                font.drawInBatch(bullets.get(i), (float) colBx, (float) (yOffset + 10 + i * 10),
+                        TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             }
             yOffset += (1 + Math.max(1, bullets.size())) * 10;
         }
         if (this.shouldShow(GunTooltipPart.BASE_INFO)) {
-            font.drawInBatch(this.levelInfo, (float) pX, (float) (yOffset += 4), 0x777777, false, matrix4f,
-                    bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
-            yOffset += 10;
+            // 经验等级/damage 已移除; 仅保留 gunType(类型): 标签"类型："浅灰(param), 类型名保留原样式(青)
             if (this.gunType != null) {
-                font.drawInBatch(this.gunType, (float) pX, (float) yOffset, 0x777777, false, matrix4f, bufferSource,
-                        Font.DisplayMode.NORMAL, 0, 0xF000F0);
+                font.drawInBatch(this.gunType, (float) pX, (float) (yOffset += 4), TACZ_CALIBER_AMMO$LABEL, false,
+                        matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
                 yOffset += 10;
             }
-            // damage 行已移除(伤害归弹药)
         }
         if (this.shouldShow(GunTooltipPart.EXTRA_DAMAGE_INFO)) {
-            // armorIgnore / headShotMultiplier 已移除(归弹药), 仅保留 weight(移动速度)
+            // armorIgnore / headShotMultiplier 已移除(归弹药), 仅保留 weight(移动速度): 保留原本逻辑(TacZ 红色样式)
             font.drawInBatch(this.weight, (float) pX, (float) (yOffset += 4), 0xFFFFFF, false, matrix4f, bufferSource,
                     Font.DisplayMode.NORMAL, 0, 0xF000F0);
             yOffset += 10;
         }
-        if (this.shouldShow(GunTooltipPart.UPGRADES_TIP)) {
-            font.drawInBatch(this.tips, (float) pX, (float) (yOffset += 4), 0xFFFFFF, false, matrix4f, bufferSource,
-                    Font.DisplayMode.NORMAL, 0, 0xF000F0);
-            yOffset += 10;
-        }
+        // UPGRADES_TIP(按 Z 改造提示)已移除
         if (this.shouldShow(GunTooltipPart.PACK_INFO) && this.packInfo != null) {
             font.drawInBatch(this.packInfo, (float) pX, (float) (yOffset += 4), 0xFFFFFF, false, matrix4f, bufferSource,
                     Font.DisplayMode.NORMAL, 0, 0xF000F0);
@@ -161,10 +160,13 @@ public class ClientGunTooltipMixin {
     private void taczCaliberAmmo$adjustHeight(CallbackInfoReturnable<Integer> cir) {
         int h = cir.getReturnValueI();
         if (this.shouldShow(GunTooltipPart.BASE_INFO)) {
-            h -= 10;
+            h -= 20; // 去 damage + 去经验等级 -> 仅剩 gunType(14)
         }
         if (this.shouldShow(GunTooltipPart.EXTRA_DAMAGE_INFO)) {
             h -= 20;
+        }
+        if (this.shouldShow(GunTooltipPart.UPGRADES_TIP)) {
+            h -= 14; // 去"按 Z 改造"提示
         }
         if (this.shouldShow(GunTooltipPart.AMMO_INFO)) {
             int rows = 1 + Math.max(1, this.taczCaliberAmmo$loadedAmmoLines().size());
@@ -190,7 +192,7 @@ public class ClientGunTooltipMixin {
         }
         Font font = Minecraft.getInstance().font;
         int colB = font.width(Component.translatable(TACZ_CALIBER_AMMO$COL_B_KEY));
-        for (String line : this.taczCaliberAmmo$loadedAmmoLines()) {
+        for (Component line : this.taczCaliberAmmo$loadedAmmoLines()) {
             colB = Math.max(colB, font.width(line));
         }
         int tableWidth = this.taczCaliberAmmo$colAWidth(font) + TACZ_CALIBER_AMMO$COLUMN_GAP + colB;
@@ -220,21 +222,34 @@ public class ClientGunTooltipMixin {
         return null;
     }
 
-    /** 弹匣内弹药文本行 "{数量}x {abbr}"(按装填顺序, 最多 5 行); 段数超过 5 时末尾补一行 "..."; 空弹匣 -> 空表。 */
+    /** 弹匣内弹药行: 数量(白) + abbr(橙), 按装填顺序, 最多 5 行; 超 5 补 "..."(白); 空弹匣 -> 空表。 */
     @Unique
-    private List<String> taczCaliberAmmo$loadedAmmoLines() {
+    private List<Component> taczCaliberAmmo$loadedAmmoLines() {
         List<Round> seq = LoadedAmmoSequence.getSequence(this.gun);
-        List<String> lines = new ArrayList<>();
+        List<Component> lines = new ArrayList<>();
         for (Round r : seq) {
             if (lines.size() >= TACZ_CALIBER_AMMO$MAX_LINES) {
                 break;
             }
-            lines.add(r.count() + "x " + taczCaliberAmmo$abbrOf(r.ammoId()));
+            lines.add(Component.literal(r.count() + "x ").withStyle(ChatFormatting.WHITE)
+                    .append(Component.literal(taczCaliberAmmo$abbrOf(r.ammoId())).withStyle(ChatFormatting.GOLD)));
         }
         if (seq.size() > TACZ_CALIBER_AMMO$MAX_LINES) {
-            lines.add("...");
+            lines.add(Component.literal("...").withStyle(ChatFormatting.WHITE));
         }
         return lines;
+    }
+
+    /** 容量格: 当前数量(白) + "/上限"(橙); 非 "x/y" 格式(百分比/库存模式)整体白色。 */
+    @Unique
+    private Component taczCaliberAmmo$capacityText() {
+        String s = this.ammoCountText.getString();
+        int slash = s.indexOf('/');
+        if (slash >= 0) {
+            return Component.literal(s.substring(0, slash)).withStyle(ChatFormatting.WHITE)
+                    .append(Component.literal(s.substring(slash)).withStyle(ChatFormatting.GOLD));
+        }
+        return Component.literal(s).withStyle(ChatFormatting.WHITE);
     }
 
     /** 弹药缩写: 读 {@code ammo.<ns>.<路径(/换.)>.abbr}(下划线换空格); 无该键回退路径末段大写。 */

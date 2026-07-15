@@ -1,11 +1,15 @@
 {
+  "accuracy": -10,
   "armorIgnore": 0.05,
   "baseDamage": 20.5,
   "caliber": "d50_ae",
   "display": "tacz:50ae_display",
   "headShotMultiplier": 1.7,
   "name": "ammo.tacz_caliber_ammo.d50_ae.ae_jhp",
+  "pelletCount": 1,
   "pierce": 1,
+  "recoil": 5,
   "sort": 60,
+  "speed": 440,
   "stack_size": 60
 }

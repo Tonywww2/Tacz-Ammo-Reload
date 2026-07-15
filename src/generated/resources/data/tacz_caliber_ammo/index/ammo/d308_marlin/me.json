@@ -1,11 +1,15 @@
 {
+  "accuracy": -2,
   "armorIgnore": 0.55,
   "baseDamage": 11.0,
   "caliber": "d308_marlin",
   "display": "tacz_caliber_ammo:d308_marlin_display",
   "headShotMultiplier": 1.35,
   "name": "ammo.tacz_caliber_ammo.d308_marlin.me",
+  "pelletCount": 1,
   "pierce": 1,
+  "recoil": 3,
   "sort": 105,
+  "speed": 838,
   "stack_size": 60
 }

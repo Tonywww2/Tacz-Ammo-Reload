@@ -1,11 +1,15 @@
 {
+  "accuracy": 0,
   "armorIgnore": 0.1,
   "baseDamage": 15.5,
   "caliber": "d366_tkm",
   "display": "tacz_caliber_ammo:d366_tkm_display",
   "headShotMultiplier": 1.55,
   "name": "ammo.tacz_caliber_ammo.d366_tkm.tkm_geksa",
+  "pelletCount": 1,
   "pierce": 1,
+  "recoil": 0,
   "sort": 146,
+  "speed": 550,
   "stack_size": 60
 }

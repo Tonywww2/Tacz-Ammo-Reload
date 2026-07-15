@@ -131,7 +131,8 @@ public class CaliberAmmoDataProvider implements DataProvider {
         }
         String[] header = splitCsv(lines.get(0));
         int iCal = col(header, "口径"), iAmmo = col(header, "弹药"), iDmg = col(header, "伤害"),
-                iPen = col(header, "穿甲"), iFrag = col(header, "破片%"), iProj = col(header, "弹丸数");
+                iPen = col(header, "穿甲"), iFrag = col(header, "破片%"), iProj = col(header, "弹丸数"),
+                iRecoil = col(header, "后坐力%"), iAcc = col(header, "精度%"), iSpeed = col(header, "初速");
 
         List<CompletableFuture<?>> futures = new ArrayList<>();
         Set<String> calibersSeen = new LinkedHashSet<>();
@@ -157,6 +158,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
                 continue;
             }
             int d = parseInt(c[iDmg]), pen = parseInt(c[iPen]), proj = parseInt(c[iProj]);
+            int recoil = parseInt(c[iRecoil]), accuracy = parseInt(c[iAcc]), speed = parseInt(c[iSpeed]);
             double fragRaw = parseDouble(c[iFrag]);
             double frag = fragRaw > 1.5 ? fragRaw / 100.0 : fragRaw; // CSV 破片% 为百分数
 
@@ -179,6 +181,10 @@ public class CaliberAmmoDataProvider implements DataProvider {
             json.addProperty("armorIgnore", (float) armorIgnore);
             json.addProperty("headShotMultiplier", (float) headShot);
             json.addProperty("pierce", pierce);
+            json.addProperty("recoil", recoil);       // 后坐力%（带符号）
+            json.addProperty("accuracy", accuracy);   // 精度%（带符号，可 >100）
+            json.addProperty("speed", speed);         // 初速原始值 m/s（运行时 × 配置 bulletSpeedScale / 20）
+            json.addProperty("pelletCount", proj);    // 弹丸数
             Path p = root.resolve("data/" + NS + "/index/ammo/" + calId + "/" + model + ".json");
             futures.add(DataProvider.saveStable(cache, json, p));
             calibersSeen.add(calId);

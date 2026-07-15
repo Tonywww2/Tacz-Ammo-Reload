@@ -1,11 +1,15 @@
 {
+  "accuracy": 10,
   "armorIgnore": 0.15,
   "baseDamage": 10.5,
   "caliber": "d45_acp",
   "display": "tacz:45acp_display",
   "headShotMultiplier": 1.9,
   "name": "ammo.tacz_caliber_ammo.d45_acp.lasermatch_fmj",
+  "pelletCount": 1,
   "pierce": 1,
+  "recoil": 0,
   "sort": 54,
+  "speed": 290,
   "stack_size": 60
 }
