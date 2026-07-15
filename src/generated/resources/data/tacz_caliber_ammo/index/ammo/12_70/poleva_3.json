@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.15,
+  "baseDamage": 19.5,
+  "caliber": "12_70",
+  "display": "tacz:12g_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.12_70.poleva_3",
+  "pierce": 1,
+  "sort": 162,
+  "stack_size": 60
+}

@@ -58,6 +58,11 @@ repositories {
         url = uri("https://cursemaven.com")
         content { includeGroup("curse.maven") }
     }
+    // Architectury API（KubeJS 的必需前置）——官方 maven，版本定位比 CurseForge 更直接
+    maven("https://maven.architectury.dev/") {
+        name = "Architectury"
+        content { includeGroup("dev.architectury") }
+    }
 }
 
 dependencies {
@@ -91,6 +96,23 @@ dependencies {
         // 它内嵌的 mae 是纯动画数学库（同样从 JiJ 抽到 libs/ 补齐）。
         "modRuntimeOnly"(rootProject.files("libs/simplebedrockmodel-2.2.2-forge+mc1.20.1.jar"))
         "forgeRuntimeLibrary"(rootProject.files("libs/mae-1.1.2.jar"))
+
+        // 开发期测试辅助 mod：仅本地 dev 运行期加载（modLocalRuntime = 不参与编译、不写入发布依赖，
+        // 下游使用者无需安装）。用于验证本 mod 的弹药/口径伤害：
+        //   DamageRender —— 在世界内实体头顶显示所受伤害数值；
+        //   Powerful Dummy —— 可定制属性的测试假人，用于 DPS 检测。
+        // 经 CurseMaven 引入，坐标 = 任意名-项目ID:文件ID（文件均为 Forge 1.20.1 变体）。
+        "modLocalRuntime"("curse.maven:damagerender-1263626:8431126")   // DamageRender-1.20.1-Forge-1.3.3
+        "modLocalRuntime"("curse.maven:powerful-dummy-1276893:7638171") // powerful_dummy-20-0.0.9 (Forge 1.20.1)
+
+        // KubeJS（脚本/测试用，仅本地 dev 运行期）。1.20.1 Forge 硬前置 Rhino + Architectury API，
+        // 三者各自作为独立 mod 引入（CurseMaven/官方 maven 都不会替我们带出前置）：
+        //   KubeJS / Rhino —— 经 CurseMaven（与其余 dev 依赖一致，取各自最新 1.20.1 Forge 文件）；
+        //   Architectury —— 官方 maven，锁 9.1.12（kubejs-forge build.26 的 POM 声明的兼容版本）。
+        // 如需在 Java 里写 KubeJS 集成，把 kubejs 改成 modImplementation（编译期）。
+        "modLocalRuntime"("dev.architectury:architectury-forge:9.1.12") { isTransitive = false }
+        "modLocalRuntime"("curse.maven:rhino-416294:6186971")   // rhino-forge-2001.2.3-build.10 (1.20.1 Forge)
+        "modLocalRuntime"("curse.maven:kubejs-238086:8020595")  // kubejs-forge-2001.6.5-build.26 (1.20.1 Forge)
     }
 }
 

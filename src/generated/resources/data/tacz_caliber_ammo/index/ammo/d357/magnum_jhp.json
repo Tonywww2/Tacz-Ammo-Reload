@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.25,
+  "baseDamage": 12.5,
+  "caliber": "d357",
+  "display": "tacz:357mag_display",
+  "headShotMultiplier": 1.65,
+  "name": "ammo.tacz_caliber_ammo.d357.magnum_jhp",
+  "pierce": 1,
+  "sort": 49,
+  "stack_size": 60
+}

@@ -1,4 +1,4 @@
-rootProject.name = "tacz_ammo_reload"
+rootProject.name = "tacz_caliber_ammo"
 
 pluginManagement {
     repositories {

@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.tacz_caliber_ammo.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "tacz_caliber_ammo.refmap.json",
+  "mixins": [
+    "AbstractGunItemMixin",
+    "AmmoBoxItemDataAccessorMixin",
+    "AmmoItemDataAccessorMixin",
+    "CommonDataManagerMixin",
+    "EntityKineticBulletMixin",
+    "ModernKineticGunScriptAPIMixin"
+  ],
+  "client": [
+    "client.ClientGunTooltipMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

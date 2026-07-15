@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.6,
+  "baseDamage": 10.0,
+  "caliber": "6_8x51",
+  "display": "tacz_caliber_ammo:6_8x51_display",
+  "headShotMultiplier": 1.35,
+  "name": "ammo.tacz_caliber_ammo.6_8x51.sig_hybrid",
+  "pierce": 1,
+  "sort": 97,
+  "stack_size": 60
+}

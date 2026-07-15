@@ -12,7 +12,7 @@ ${description}
 '''
 
 [[mixins]]
-config = "tacz_ammo_reload.mixins.json"
+config = "tacz_caliber_ammo.mixins.json"
 
 [[dependencies.${id}]]
 modId = "forge"

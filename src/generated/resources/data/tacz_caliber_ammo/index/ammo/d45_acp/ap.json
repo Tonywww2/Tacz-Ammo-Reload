@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.45,
+  "baseDamage": 9.0,
+  "caliber": "d45_acp",
+  "display": "tacz:45acp_display",
+  "headShotMultiplier": 1.9,
+  "name": "ammo.tacz_caliber_ammo.d45_acp.ap",
+  "pierce": 1,
+  "sort": 52,
+  "stack_size": 60
+}

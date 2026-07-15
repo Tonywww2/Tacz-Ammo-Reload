@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.25,
+  "baseDamage": 13.5,
+  "caliber": "d366_tkm",
+  "display": "tacz_caliber_ammo:d366_tkm_display",
+  "headShotMultiplier": 1.45,
+  "name": "ammo.tacz_caliber_ammo.d366_tkm.tkm_fmj",
+  "pierce": 1,
+  "sort": 145,
+  "stack_size": 60
+}

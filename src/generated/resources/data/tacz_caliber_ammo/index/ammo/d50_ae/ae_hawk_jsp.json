@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.3,
+  "baseDamage": 17.0,
+  "caliber": "d50_ae",
+  "display": "tacz:50ae_display",
+  "headShotMultiplier": 1.5,
+  "name": "ammo.tacz_caliber_ammo.d50_ae.ae_hawk_jsp",
+  "pierce": 1,
+  "sort": 59,
+  "stack_size": 60
+}

@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.1,
+  "baseDamage": 14.0,
+  "caliber": "d45_acp",
+  "display": "tacz:45acp_display",
+  "headShotMultiplier": 1.6,
+  "name": "ammo.tacz_caliber_ammo.d45_acp.hydra_shok",
+  "pierce": 1,
+  "sort": 55,
+  "stack_size": 60
+}

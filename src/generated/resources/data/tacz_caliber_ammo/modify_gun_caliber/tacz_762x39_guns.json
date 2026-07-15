@@ -1,0 +1,17 @@
+{
+  "guns": {
+    "tacz:ak47": [
+      "tacz_caliber_ammo:7_62x39"
+    ],
+    "tacz:rpk": [
+      "tacz_caliber_ammo:7_62x39"
+    ],
+    "tacz:sks_tactical": [
+      "tacz_caliber_ammo:7_62x39"
+    ],
+    "tacz:type_81": [
+      "tacz_caliber_ammo:7_62x39"
+    ]
+  },
+  "priority": 0
+}

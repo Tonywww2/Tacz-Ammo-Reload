@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.4,
+  "baseDamage": 36.5,
+  "caliber": "d50_bmg",
+  "display": "tacz:50bmg_display",
+  "headShotMultiplier": 1.35,
+  "name": "ammo.tacz_caliber_ammo.d50_bmg.bmg_hp",
+  "pierce": 1,
+  "sort": 153,
+  "stack_size": 60
+}

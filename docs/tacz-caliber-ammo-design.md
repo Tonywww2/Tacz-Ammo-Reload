@@ -57,30 +57,31 @@ flowchart TB
 
 伤害组合公式(已定):
 
-- **最终伤害 = (弹药基础伤害) * (1 + 枪.percentDamage) + 枪.flatDamage**。基础伤害取弹药档距离-伤害曲线 `damageAdjust`(或标量 `baseDamage`)在当前距离的取值。
+- **最终伤害 = (弹药基础伤害) * (1 + 枪.percentDamage) + 枪.flatDamage**。基础伤害 = 弹药 `baseDamage` 标量(2026-07-15 定: **暂移除距离-伤害曲线**, 不做距离衰减)。
 - 护甲穿透 `armorIgnore`、爆头 `headShotMultiplier`、穿透 `pierce`: **仅来自弹药**。
 - **初速 `speed` / 重力 `gravity` 留在枪**; 射速/后坐/散布/换弹时序同样留在枪。
 - 配件修饰(TacZ `modifyProperty`)在上式之后叠加(先后顺序实现期核实)。
 
 ## 4. 依赖
 
-- **Hard**: TacZ `1028108-8141310`(`modImplementation` 经 CurseMaven, 已解析); Architectury Loom 内建 Mixin(已在 build.gradle.kts 注册 `tacz_ammo_reload.mixins.json`); Forge 1.20.1。
+- **Hard**: TacZ `1028108-8141310`(`modImplementation` 经 CurseMaven, 已解析); Architectury Loom 内建 Mixin(已在 build.gradle.kts 注册 `tacz_caliber_ammo.mixins.json`); Forge 1.20.1。
 - **Soft / optional**: 无强制。TacZ 的配件修饰系统(`IGun.modifyProperty` / `resource.modifier.custom.*`)与本设计并行 —— 需保证配件对伤害的修正仍能与新公式叠加(风险项)。
 
 ## 5. 接口 / 契约(草案 —— 将在平行任务表冻结)
 
-数据 schema(键 = TacZ ResourceLocation):
+数据模型(2026-07-15 调整: 弹药属性直接写进弹药自身 JSON, 见 §7 核实):
 
-- caliber: `{ "name": string, "tooltip": string, "defaultProfile"?: AmmoProfile }`
-- ammo_profile(按弹药物品 id): `{ "caliber": rl, "baseDamage": float | "damageAdjust": [[dist,dmg], ...], "armorIgnore": float, "headShotMultiplier": float, "pierce": int }`  (初速/重力不在弹药, 归枪)
-- gun_mapping(按枪 id): `{ "calibers": [rl, ...], "flatDamage": float, "percentDamage": float }`
-- 自动派生: 缺省开启; 未命中显式配置时 口径 = 原 `ammoId`, 弹道档 = 由枪原始 `bulletData` 派生。
+- **弹药 JSON(TacZ gun pack)新增字段**: `caliber`(缺省 `none`) + 伤害字段 `baseDamage`(标量) / `armorIgnore` / `headShotMultiplier` / `pierce`。TacZ 的 `AmmoIndexPOJO` 会忽略未知字段, 故经 Mixin 弹药加载读取。
+- **弹药 id 命名规范(已核实)**: 弹药按 `口径id/型号id` 子目录组织 —— `data/tacz_caliber_ammo/index/ammo/<口径id>/<型号id>.json` -> id `tacz_caliber_ammo:<口径id>/<型号id>`(TacZ `ResourceScanner` / `FileToIdConverter` 递归扫描且子路径进 id, 已核实; 例 `.../5_56x45/m855.json` -> `tacz_caliber_ammo:5_56x45/m855`)。命名空间必须 `tacz_caliber_ammo`(取自 `data/<ns>/`), 型号id 用与口径同规则。**枪不再引用单一弹药 id(弃用 枪->子弹), 改为声明口径**; 引用处用完整含斜杠 id。
+- **枪 JSON(TacZ gun index)新增字段**(instr 1, 2026-07-15 定): `calibers`(可选列表, 多口径; 缺省由 `GunData.ammoId` 对应弹药派生单口径) + `flatDamage` + `percentDamage`。`GunIndexPOJO` 用 Gson `@SerializedName`, 忽略未知字段, 故同样经 Mixin 枪加载读取。
+- `calibers/*.json`(本 mod 命名空间, 可选): 仅口径元数据 `{ "name": string }`(说明文本不再写入 JSON, 由口径 id 自动生成本地化键 `caliber.<ns>.<path>.tooltip`, 见 `Caliber.tooltipKey()`; CR-3)。
+- 缺省: 无 `caliber` 字段的弹药(如 TacZ 自带) -> 口径 `none`; 无伤害字段 -> 由枪原始 `bulletData` 派生。
 
 Java 契约(命名待冻结):
 
 - `CaliberManager`(SimpleJsonResourceReloadListener): `getGunCalibers(rl) -> Set<rl>`, `getAmmoCaliber(rl) -> rl`, `getAmmoProfile(rl) -> AmmoProfile`, `getGunModifier(rl) -> GunDamageModifier`; 未命中走自动派生。
-- 已装弹匣 NBT 访问器(**逐发序列**, 支持彩虹弹): `getLoadedSequence(stack) -> List<(ammoId,count)>`(RLE 游程编码) / `setLoadedSequence(...)` / `popNextRound(stack) -> ammoId`(发射时出队)。NBT 键如 `TacAmmoReload:LoadedSeq`。单一弹种 = 长度为 1 的退化序列; 与 `IGun.currentAmmoCount` 保持 sum == count。
-- Mixin 目标(已核实): `com.tacz.guns.api.item.nbt.AmmoItemDataAccessor#isAmmoOfGun`; `com.tacz.guns.api.item.nbt.AmmoBoxItemDataAccessor#isAmmoBoxOfGun`(弹药盒/包同样改口径匹配); `com.tacz.guns.entity.EntityKineticBullet`(构造器 / `getDamage` / `onHitEntity`)。目标待核实: 真实换弹消耗与序列写入(换弹状态机在 shooter, `LivingEntityAmmoCheck` 仅 needCheckAmmo/consumesAmmoOrNot 辅助); 发射出队处(类/方法)。
+- 已装弹匣 NBT 访问器(**逐发序列**, 支持彩虹弹): `getLoadedSequence(stack) -> List<(ammoId,count)>`(RLE 游程编码) / `setLoadedSequence(...)` / `popNextRound(stack) -> ammoId`(发射时出队)。NBT 键如 `tacz_caliber_ammo:LoadedSeq`。单一弹种 = 长度为 1 的退化序列; 与 `IGun.currentAmmoCount` 保持 sum == count。**边界(instr 2): 若 sum(seq) != currentAmmoCount(旧存档/外部装弹/desync), 以 currentAmmoCount 为准, 用默认弹种(枪派生口径的默认弹, 缺省 = 枪原 `GunData.ammoId`)重建/补齐/截断序列; seq 为空但 count>0 时 popNextRound 返回默认弹种。** **FeedType(2026-07-15 定): MAGAZINE 用完整逐发序列; FUEL 仅存一发弹种(整管燃料属这一发, count=燃料量); INVENTORY 更简, 只记一发弹种、不存量(本质从背包直取); 无限弹(infinite/创造)用弹匣首发(序列头)弹种; 上嬜弹(hasBulletInBarrel)= 序列头(即将击发的一发)。**
+- Mixin 目标(已核实, CFR 反编译): `AmmoItemDataAccessor#isAmmoOfGun`; `AmmoBoxItemDataAccessor#isAmmoBoxOfGun`; `EntityKineticBullet`(构造器 / `getDamage` / `onHitEntity`)。**换弹写序列 = `AbstractGunItem.findAndExtractInventoryAmmo`**(按槽序提取, 知道 ammoId); **发射出队 = `ModernKineticGunScriptAPI.shootOnce`**(将其 `ammoId = gunData.getAmmoId()` 换为 popNextRound, 在 `reduceAmmoOnce` 处出队); 弹药字段读取 = Mixin 弹药加载(`CommonAmmoIndexSerializer` / `AmmoIndexPOJO`); 枪字段读取 = Mixin 枪加载(`CommonGunIndexSerializer` / `GunIndexPOJO`); 退弹 = 给 `GunRefitScreen` 加按钮(ScreenEvent 或 Mixin) + 自定义包 + 服务端按 LoadedSeq 归还(参考 `AbstractGunItem.dropAllAmmo`)。注: TacZ 原 `RefitUnloadButton` 是卸配件。
 
 ## 6. 风险与边界
 
@@ -111,9 +112,15 @@ Java 契约(命名待冻结):
 | IAmmoBox 存储 = 单一 ammoId + count 序列化到 NBT(AMMO_ID_TAG/AMMO_COUNT_TAG) | verified | javap IAmmoBox, AmmoBoxItemDataAccessor |
 | isAmmoBoxOfGun 也按 gunId->ammoId 匹配(需同改口径) | verified | javap AmmoBoxItemDataAccessor |
 | LivingEntityAmmoCheck 仅 needCheckAmmo/consumesAmmoOrNot; 真实换弹搜索/消耗在别处 | verified | javap LivingEntityAmmoCheck |
-| 真实换弹消耗与序列写入的精确类/方法 | to-verify | 反编译 shooter 状态机 / ModernKineticGunItem 换弹 |
-| 发射处 bullet.ammoId 来源(改传已装弹种) | to-verify | 定位 shoot 构造子弹的类/方法 |
-| 客户端弹药计数/显示(ClientAmmoIndex)受影响面 | to-verify | 读 client.resource.index |
+| 换弹消耗 = `AbstractGunItem.findAndExtractInventoryAmmo`(按槽序提取, 知 ammoId); 上游 shootOnce/consumeAmmoFromPlayer/putAmmoInMagazine | verified | CFR 反编译 |
+| 发射 = `ModernKineticGunScriptAPI.shootOnce`; `ammoId=gunData.getAmmoId()` 后 `new EntityKineticBullet(...)`; 每发 `reduceAmmoOnce()` | verified | CFR 反编译 |
+| 弹药 JSON 经 `CommonAmmoIndexSerializer` -> `AmmoIndexPOJO`(Gson 忽略未知字段); 弹药在 TacZ gun pack | verified | CFR 反编译 |
+| 客户端 `GunHudOverlay` 显示 currentAmmoCount(+ammoId 图标); 逐发显示需 mixin(低优先) | verified | CFR 反编译 |
+| 枪 JSON: `GunIndexPOJO` Gson @SerializedName(name/tooltip/display/data/type/item_type/sort), 忽略未知字段 | verified | CFR 反编译 |
+| TacZ `RefitUnloadButton`(GunRefitScreen)发 `ClientMessageUnloadAttachment` = 卸配件, 非退弹 | verified | CFR 反编译 |
+| `AbstractGunItem.dropAllAmmo` 按单一 ammoId 分堆归还弹药(ItemHandlerHelper.giveItemToPlayer) | verified | CFR 反编译 |
+| 弹药 tooltip = `AmmoItem.m_7373_`(加 tooltipKey/包名, `List<Component>`); 枪用 `GunTooltip`/`ClientGunTooltip` 自定义渲染 | verified | CFR 反编译 |
+| EntityKineticBullet 构造末从枪缓存设 armorIgnore(0-1 clamp)/headShot/damageAmount(曲线, 含配件 modifyProperty); onHitEntity 里 damage*=headShot(L416) | verified | CFR 反编译 |
 
 ## 8. 已决策(原开放问题, 2026-07-14 确认)
 
@@ -121,8 +128,9 @@ Java 契约(命名待冻结):
 - 换弹选弹种: **暂用背包顺序**(扫描背包取第一个口径匹配的弹药; 暂不做优先级/记忆/GUI)。
 - 弹药内容: **新建一整套 TacZ 格式弹药**(作为本 mod 内置 TacZ gun pack), 覆盖各口径的 HP/SP/FMJ/BP 等型号; 我方 caliber / ammo_profile 侧车数据按其 ammoId 关联。
 - 伤害公式: **最终伤害 = (弹药基础) * (1 + 枪械百分比) + 枪械固定值**; 配件 `modifyProperty` 修饰在此之后叠加(先后顺序实现期核实)。
+- (07-15 细化) 弹药基础伤害**先用单一标量**(距离衰减后续可选); 爆头用**倍率**; **禁用原版 TacZ 弹药物品**(以新型号取代); 每口径**型号集由用户提供的 CSV 驱动**。
 
-剩余 to-verify(见第 7 节): 换弹搜索精确方法 / 发射处 ammoId 来源 / 客户端显示影响面。
+换弹/发射/弹药加载均已 CFR 核实(见第 7 节)。实现期仍需精确定位: 伤害计算注入行(`EntityKineticBullet.getDamage`/`onHitEntity`)、客户端字段同步、膛内已上嬜弹的弹种记录。
 
 ## 9. 关键骨架(最风险处, 伪代码)
 
@@ -158,7 +166,7 @@ if (p != null) {
 
 - 存储区: `Map<ammoId, int>` 序列化到 NBT(把 TacZ AmmoBox 的 AMMO_ID_TAG/AMMO_COUNT_TAG 扩成列表); **容量上限在 `AmmoPouchItem` 物品类中定义**(Java 常量, 不走 config/数据; 不分 level)。
 - 压弹图案: `List<PatternEntry>`(<=5), `PatternEntry = { ammoId, perCycle }`。空图案 -> 默认顺序。
-- NBT 键: `TacAmmoReload:PouchStore`, `TacAmmoReload:PouchPattern`。
+- NBT 键: `tacz_caliber_ammo:PouchStore`, `tacz_caliber_ammo:PouchPattern`。
 
 ### 10.3 GUI / 容器布局(从上到下)
 
@@ -216,9 +224,50 @@ List<Round> buildSequence(Gun gun, Pouch pouch) {
 - 存储区"取出"的精确手感(单发 / 整组 / Shift 全取)。
 - perCycle 的 UI 输入控件(数字框 / 滚轮 / 加减按钮)。
 
+## 11. 退弹 (Unload) 补充设计
+
+### 11.1 目标
+玩家在枪械 检视/改装页(`GunRefitScreen`)按一个按钮退出弹匣内全部弹药。注: TacZ 该页已有的 `RefitUnloadButton` 是"卸下配件"(发 `ClientMessageUnloadAttachment`), **非退弹**; 本功能是新的"退子弹"。
+
+### 11.2 流程
+- 客户端: 在 `GunRefitScreen` 加"退弹"按钮(优先 Forge `ScreenEvent.Init.Post` 加 widget; 或 Mixin 该屏)。onPress 发自定义包 `CMsgUnloadAmmo(gunSlot)`。
+- 服务端: 处理包 -> 读枪 `LoadedSeq` -> 逐 (ammoId,count) 归还弹药物品(复用 `dropAllAmmo` 的分堆 / `giveItemToPlayer`, 但按序列各自类型, 而非单一 `gunData.getAmmoId()`); 归还优先进快捷栏弹药包(若有)否则背包/掉落。清空 `LoadedSeq`、`setCurrentAmmoCount(0)`、`setBulletInBarrel(false)`。
+- 边界: 弹匣空/无 LoadedSeq -> 按钮禁用或空操作; LoadedSeq 与 count 不一致 -> 先按 §5 边界重建再退。
+
+### 11.3 接口
+- 包 `CMsgUnloadAmmo`(client->server, 携枪所在槽位)。
+- 服务端 `UnloadHandler.unload(player, gunStack)`(读 LoadedSeq 归还 + 清空)。
+- 客户端经 `ScreenEvent` 加退弹按钮。
+
+## 12. 信息显示 (Tooltip / Info) 补充设计
+
+### 12.1 目标
+- 弹药 tooltip 显示全部弹药信息: 口径 + 基础伤害 / 护甲穿透 / 爆头 / 穿透。
+- 枪械显示其口径(可用口径集)。
+- 未配置口径的弹药(caliber=none, 含 TacZ 原版弹药)加一行特殊 tooltip 标记(替代"禁用/移除"方案)。
+
+### 12.2 方案
+- 优先用 Forge `ItemTooltipEvent`(客户端, 游戏总线)追加行 —— **无需 Mixin**:
+  - 弹药(IAmmo): 追加 `口径: <caliber>` + 伤害各项(读我方弹药数据; 缺省 caliber=none)。
+  - 枪械(IGun): 追加 `口径: <calibers>`(读枪派生/显式口径)。
+- TacZ 原生: 弹药经 `AmmoItem.m_7373_`(加 tooltipKey/包名); 枪用自定义 `GunTooltip`+`ClientGunTooltip` 渲染 —— `ItemTooltipEvent` 的文本行仍会显示, 故追加行可行。
+- 若需嵌入枪自定义 tooltip 布局(图标/分栏), 再 Mixin `ClientGunTooltip`(可选, 后续)。
+- 数据源: 我方 ammo 数据(caliber/damage, 来自弹药 JSON 字段) + 枪 caliber(派生/gun JSON)。客户端需可读 → 随数据包索引同步到客户端。
+
+### 12.3 接口
+- 客户端 `TooltipHandler`(订阅 `ItemTooltipEvent`)。
+- 复用 CaliberManager 的客户端可读索引(ammoId->caliber/profile, gunId->calibers)。
+- 口径说明行: 用 `Caliber.tooltipKey()`(由 id 生成 `caliber.<ns>.<path>.tooltip`)经 `Component.translatable` 显示; 客户端用 `I18n.exists(key)` 判断该口径是否有说明翻译, 无则不追加该行 —— 说明文本不再由 `calibers/*.json` 字符串设置(CR-3)。
+
 ## Revision Log
 
 - 2026-07-14 — 初稿(Stage 1)。基于 javap 核实 TacZ 8141310 的弹药/伤害模型; 5 项高杠杆决策(弹道所有权反转 / 接受 Mixin / 全量迁移 / JSON 数据包 / 自动派生兼容)已与用户确认。
 - 2026-07-14 — 补充 4 项细节决策: 初速/重力归枪、穿透归弹药; 换弹暂用背包顺序; 新建整套 TacZ 格式弹药; 最终伤害 = 弹药基础 * (1 + 枪百分比) + 枪固定值。第 8 节开放问题全部结清。
 - 2026-07-14 — 新增第 10 节 弹药包(Ammo Pouch): 多弹种序列化存储 + 5 格压弹图案(彩虹弹)。驱动基础设计修正: 枪已装弹 NBT 由单一弹种升级为逐发序列(RLE); 新增 `isAmmoBoxOfGun` 口径匹配注入点; 核实 IAmmoBox / LivingEntityAmmoCheck。
 - 2026-07-14 — 弹药包细节定稿: 必须置于快捷栏才生效; 容量上限在 AmmoPouchItem 物品类中定义(不分 level); 存储区无 slot(光标持弹点击存入); 明确 perCycle 语义(每格每轮填装发数, 无独立硬上限)。第 10.7 节开放问题结清。
+- 2026-07-15 — Stage 2 细化回写: 基础伤害先用标量; 爆头倍率; 禁用原版弹药物品; 每口径型号集由用户 CSV 驱动。详见总任务表 Q1-Q4。
+- 2026-07-15 — 项目改名 tacz_caliber_ammo; CFR 核实换弹/发射/弹药加载链(R1-R3 结清: findAndExtractInventoryAmmo / shootOnce / CommonAmmoIndexSerializer)。数据模型改为: 弹药 caliber+伤害字段写进弹药 JSON(缺省 caliber=none), 枪口径由 ammoId 派生。
+- 2026-07-15 — 新增 3 项: 枪 JSON 新增字段(calibers/flatDamage/percentDamage, 经 Mixin 枪加载读); LoadedSeq 与 count 不一致时用默认弹种重建(§5); 新增 §11 退弹(GunRefitScreen 加按钮 + 包 + 服务端按 LoadedSeq 归还; TacZ 原按钮仅卸配件)。
+- 2026-07-15 — 新增 §12 信息显示: 弹药 tooltip 显示口径+伤害, 枪显示口径; 优先用 Forge `ItemTooltipEvent` 追加行(无需 Mixin)。
+- 2026-07-15 — (CR-3) 口径说明(tooltip)不再写 `calibers/*.json` 字符串, 改由口径 id 自动生成本地化键 `caliber.<ns>.<path>.tooltip`(`Caliber.tooltipKey()`); `Caliber` record 去掉 `tooltip` 字段 → `record Caliber(id, name)`。
+- 2026-07-15 — 缺口决策: FeedType(MAGAZINE 逐发 / FUEL·INVENTORY 单弹种 / 无限用首发); 上嬜弹=序列头; 暂移除距离曲线(标量伤害); armorIgnore 与配件沿用 TacZ(配件最后结算); 原版弹药改"tooltip 标记"不禁用; 口径命名规范; 枪->口径后续手动编译。

@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.15,
+  "baseDamage": 10.5,
+  "caliber": "d45_acp",
+  "display": "tacz:45acp_display",
+  "headShotMultiplier": 1.9,
+  "name": "ammo.tacz_caliber_ammo.d45_acp.lasermatch_fmj",
+  "pierce": 1,
+  "sort": 54,
+  "stack_size": 60
+}

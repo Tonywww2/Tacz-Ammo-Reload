@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.7,
+  "baseDamage": 6.5,
+  "caliber": "5_45x39",
+  "display": "tacz_caliber_ammo:5_45x39_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.5_45x39.bs",
+  "pierce": 2,
+  "sort": 74,
+  "stack_size": 60
+}

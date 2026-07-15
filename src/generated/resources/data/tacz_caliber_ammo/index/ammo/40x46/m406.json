@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.0,
+  "baseDamage": 28.0,
+  "caliber": "40x46",
+  "display": "tacz:40mm_display",
+  "headShotMultiplier": 1.3,
+  "name": "ammo.tacz_caliber_ammo.40x46.m406",
+  "pierce": 1,
+  "sort": 179,
+  "stack_size": 60
+}

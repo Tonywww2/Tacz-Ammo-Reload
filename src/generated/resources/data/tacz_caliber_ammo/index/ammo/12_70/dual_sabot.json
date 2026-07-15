@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.15,
+  "baseDamage": 7.5,
+  "caliber": "12_70",
+  "display": "tacz:12g_display",
+  "headShotMultiplier": 1.35,
+  "name": "ammo.tacz_caliber_ammo.12_70.dual_sabot",
+  "pierce": 1,
+  "sort": 161,
+  "stack_size": 60
+}

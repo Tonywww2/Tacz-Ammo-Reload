@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.15,
+  "baseDamage": 7.5,
+  "caliber": "9x18",
+  "display": "tacz_caliber_ammo:9x18_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.9x18.pm_bzht",
+  "pierce": 1,
+  "sort": 22,
+  "stack_size": 60
+}

@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.0,
+  "baseDamage": 3.0,
+  "caliber": "12_70",
+  "display": "tacz:12g_display",
+  "headShotMultiplier": 1.3,
+  "name": "ammo.tacz_caliber_ammo.12_70.express_6_5",
+  "pierce": 1,
+  "sort": 166,
+  "stack_size": 60
+}

@@ -1,0 +1,11 @@
+{
+  "armorIgnore": 0.9,
+  "baseDamage": 16.0,
+  "caliber": "d338",
+  "display": "tacz:338_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.d338.lapua_magnum_ap",
+  "pierce": 3,
+  "sort": 133,
+  "stack_size": 60
+}
