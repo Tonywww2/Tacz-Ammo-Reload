@@ -1,0 +1,15 @@
+{
+  "accuracy": 15,
+  "armorIgnore": 0.5,
+  "baseDamage": 11.5,
+  "caliber": "d30_06",
+  "display": "tacz:30_06_display",
+  "headShotMultiplier": 1.35,
+  "name": "ammo.tacz_caliber_ammo.d30_06.m72_match",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 3,
+  "sort": 198,
+  "speed": 830,
+  "stack_size": 60
+}

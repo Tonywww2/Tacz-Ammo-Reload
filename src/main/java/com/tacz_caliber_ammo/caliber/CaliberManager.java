@@ -68,6 +68,10 @@ public final class CaliberManager {
         putNative(m, "12g", "12_70");
         putNative(m, "40mm", "40x46");
         putNative(m, "rpg_rocket", "72_5");
+        // 本体新增口径(无原生 TacZ 弹药)的基准弹 -> 指向本 mod 自造弹药, 作 getAmmosForCaliber 的代码级兜底基准
+        m.put(TaczCaliberAmmo.prefix("12_7x108/b_32"), TaczCaliberAmmo.prefix("12_7x108"));
+        m.put(TaczCaliberAmmo.prefix("30x29/vog_30"), TaczCaliberAmmo.prefix("30x29"));
+        m.put(TaczCaliberAmmo.prefix("40_vog_25/vog_25"), TaczCaliberAmmo.prefix("40_vog_25"));
         return Collections.unmodifiableMap(m);
     }
 

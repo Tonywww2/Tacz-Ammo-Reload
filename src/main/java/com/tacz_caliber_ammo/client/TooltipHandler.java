@@ -84,8 +84,8 @@ public final class TooltipHandler {
                 if (p.pelletCount() > 1) {
                     out.add(valueLine("tooltip.tacz_caliber_ammo.pellet_count", Integer.toString(p.pelletCount())));
                 }
-                out.add(signedValueLine("tooltip.tacz_caliber_ammo.recoil", p.recoilModifier()));
-                out.add(signedValueLine("tooltip.tacz_caliber_ammo.accuracy", p.accuracyModifier()));
+                out.add(signedValueLine("tooltip.tacz_caliber_ammo.recoil", p.recoilModifier(), true));
+                out.add(signedValueLine("tooltip.tacz_caliber_ammo.accuracy", p.accuracyModifier(), false));
             }
         }
         lines.addAll(Math.min(1, lines.size()), out);
@@ -97,9 +97,13 @@ public final class TooltipHandler {
                 .withStyle(ChatFormatting.GRAY);
     }
 
-    /** 同 valueLine，但数值按符号着色：正数绿、负数红、0 白（供后坐力/散布用）。 */
-    private static Component signedValueLine(String key, float v) {
-        ChatFormatting color = v > 0 ? ChatFormatting.GREEN : (v < 0 ? ChatFormatting.RED : ChatFormatting.WHITE);
+    /**
+     * 同 valueLine，但数值按"好坏"着色：好绿、坏红、0 白；数字仍显示原始带符号值。
+     * {@code higherIsWorse=true} 时正数视为"坏"（如后坐力：正=更多后坐力=坏，正红负绿）；false 时正=好（如精度）。
+     */
+    private static Component signedValueLine(String key, float v, boolean higherIsWorse) {
+        float goodness = higherIsWorse ? -v : v;
+        ChatFormatting color = goodness > 0 ? ChatFormatting.GREEN : (goodness < 0 ? ChatFormatting.RED : ChatFormatting.WHITE);
         return Component.translatable(key, Component.literal(signedPercent(v)).withStyle(color))
                 .withStyle(ChatFormatting.GRAY);
     }

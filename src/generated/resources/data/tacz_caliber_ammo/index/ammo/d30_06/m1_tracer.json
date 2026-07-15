@@ -1,0 +1,15 @@
+{
+  "accuracy": -5,
+  "armorIgnore": 0.45,
+  "baseDamage": 11.0,
+  "caliber": "d30_06",
+  "display": "tacz:30_06_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.d30_06.m1_tracer",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 3,
+  "sort": 197,
+  "speed": 820,
+  "stack_size": 60
+}

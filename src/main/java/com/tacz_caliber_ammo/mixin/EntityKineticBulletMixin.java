@@ -84,6 +84,23 @@ public class EntityKineticBulletMixin {
                 dmg, this.armorIgnore, this.headShot, this.pierce, this.damageModifier, this.shotDamageMultiplier);
     }
 
+    /**
+     * 多头弹药（霰弹）伤害修正。TacZ 默认 {@code applyShotgunDamageSpread(bulletCount)} 把伤害按 1/bulletCount
+     * 均摊到每颗弹丸（{@code damageModifier=1/bulletCount}）—— 因 TacZ 假设“枪”持有总伤害。本 mod 设计里“弹药”
+     * 持有的是每颗弹丸的伤害，故对已配置弹药档的弹药跳过该均摊：每颗弹丸都打满 baseDamage，命中 N 颗即 N×baseDamage。
+     * （原行为下总伤害恒为 baseDamage，多颗命中却“只造成一次伤害”的观感即源于此均摊。TacZ 已在 tacAttackEntity
+     * 里 {@code f_19802_=0} 重置无敌帧，故每颗弹丸本就都能结算，只是被均摊缩小了。）
+     * 未配置档的弹药保留 TacZ 均摊。该方法在构造之后、每颗弹丸创建时调用（ScriptAPI.shootOnce 循环内）。
+     */
+    @Inject(method = "applyShotgunDamageSpread", at = @At("HEAD"), cancellable = true)
+    private void taczCaliberAmmo$perPelletFullDamage(int bulletCount, CallbackInfo ci) {
+        if (bulletCount > 1 && CaliberManager.getAmmoProfile(this.ammoId) != null) {
+            DebugLog.log("applyShotgunDamageSpread SKIP ammo={} bulletCount={} -> 每颗弹丸打满 baseDamage", this.ammoId,
+                    bulletCount);
+            ci.cancel();
+        }
+    }
+
     @Inject(method = "getDamage(Lnet/minecraft/world/phys/Vec3;)F", at = @At("RETURN"))
     private void taczCaliberAmmo$logDamage(Vec3 hitVec, CallbackInfoReturnable<Float> cir) {
         DebugLog.log("getDamage: ammo={} gun={} -> {} (damageAmount[0]={} damageModifier={} shotMult={})",

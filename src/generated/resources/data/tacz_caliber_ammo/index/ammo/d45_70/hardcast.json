@@ -1,0 +1,15 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.45,
+  "baseDamage": 13.5,
+  "caliber": "d45_70",
+  "display": "tacz:45_70_display",
+  "headShotMultiplier": 1.35,
+  "name": "ammo.tacz_caliber_ammo.d45_70.hardcast",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 20,
+  "sort": 207,
+  "speed": 420,
+  "stack_size": 60
+}

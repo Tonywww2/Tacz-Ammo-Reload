@@ -1,0 +1,15 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.2,
+  "baseDamage": 19.5,
+  "caliber": "d500_magnum",
+  "display": "tacz:500mag_display",
+  "headShotMultiplier": 1.55,
+  "name": "ammo.tacz_caliber_ammo.d500_magnum.xtp",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 12,
+  "sort": 189,
+  "speed": 510,
+  "stack_size": 60
+}

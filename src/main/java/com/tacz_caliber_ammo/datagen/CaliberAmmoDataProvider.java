@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import javax.imageio.ImageIO;
 
 import com.google.common.hash.Hashing;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
 
@@ -88,6 +89,18 @@ public class CaliberAmmoDataProvider implements DataProvider {
         m.put("9.3x64mm", "9_3x64");
         m.put(".308 Marlin Express", "d308_marlin");
         m.put("6.8x51mm", "6_8x51");
+        // 7 个有原生枪但 CSV 未覆盖的口径（启发数值, 见 CSV 补充行 + 复用 TacZ 原生 display）
+        m.put(".22 WMR", "d22_wmr");
+        m.put(".500 S&W Magnum", "d500_magnum");
+        m.put("5.8x42mm", "5_8x42");
+        m.put(".30-06 Springfield", "d30_06");
+        m.put("7.92x57mm Mauser", "7_92x57_mauser");
+        m.put(".45-70 Government", "d45_70");
+        m.put("72.5mm Rocket", "72_5");
+        // 3 个无原生枪的空缺口径（启发数值；无 TacZ 原型 -> 纯色占位贴图）
+        m.put("12.7x108mm", "12_7x108");
+        m.put("30x29mm", "30x29");
+        m.put("40mm VOG-25", "40_vog_25");
         return m;
     }
 
@@ -105,6 +118,13 @@ public class CaliberAmmoDataProvider implements DataProvider {
         m.put("d50_bmg", "50bmg");
         m.put("12_70", "12g");
         m.put("40x46", "40mm");
+        m.put("d22_wmr", "22wmr");
+        m.put("d500_magnum", "500mag");
+        m.put("5_8x42", "58x42");
+        m.put("d30_06", "30_06");
+        m.put("7_92x57_mauser", "792x57");
+        m.put("d45_70", "45_70");
+        m.put("72_5", "rpg_rocket");
         return m;
     }
 
@@ -132,7 +152,8 @@ public class CaliberAmmoDataProvider implements DataProvider {
         String[] header = splitCsv(lines.get(0));
         int iCal = col(header, "口径"), iAmmo = col(header, "弹药"), iDmg = col(header, "伤害"),
                 iPen = col(header, "穿甲"), iFrag = col(header, "破片%"), iProj = col(header, "弹丸数"),
-                iRecoil = col(header, "后坐力%"), iAcc = col(header, "精度%"), iSpeed = col(header, "初速");
+                iRecoil = col(header, "后坐力%"), iAcc = col(header, "精度%"), iSpeed = col(header, "初速"),
+                iCat = col(header, "分类");
 
         List<CompletableFuture<?>> futures = new ArrayList<>();
         Set<String> calibersSeen = new LinkedHashSet<>();
@@ -187,6 +208,10 @@ public class CaliberAmmoDataProvider implements DataProvider {
             json.addProperty("pelletCount", proj);    // 弹丸数
             Path p = root.resolve("data/" + NS + "/index/ammo/" + calId + "/" + model + ".json");
             futures.add(DataProvider.saveStable(cache, json, p));
+            // 配方（gun smith table）：参考 TacZ 原版弹药配方（铜+火药），高穿弹耗更多铜、AP 额外加铁芯
+            JsonObject recipe = buildRecipe(calId, model, c[iCat], pen);
+            futures.add(DataProvider.saveStable(cache, recipe,
+                    root.resolve("data/" + NS + "/recipes/ammo/" + calId + "/" + model + ".json")));
             calibersSeen.add(calId);
             calNames.putIfAbsent(calId, caliberDisplayName(c[iCal]));
             written++;
@@ -256,6 +281,60 @@ public class CaliberAmmoDataProvider implements DataProvider {
     private static String caliberDisplayName(String csvCaliber) {
         String s = csvCaliber.replaceAll("[^\\x00-\\x7F]", "").trim();
         return s.isEmpty() ? csvCaliber.trim() : s;
+    }
+
+    // ==== 弹药配方（tacz:gun_smith_table_crafting）====
+
+    /**
+     * 参考 TacZ 原版弹药配方（铜锭 + 火药）按类别定基线；<b>穿甲越高铜越多</b>，穿甲 ≥ 40 额外加铁粒（AP 代价）。
+     * 输出 {@code result.id = tacz_caliber_ammo:<口径>/<型号>}，即制枪台产出对应 NBT 弹药。
+     */
+    private static JsonObject buildRecipe(String calId, String model, String category, int pen) {
+        int baseCu;
+        int baseGp;
+        int count;
+        String group;
+        switch (category == null ? "" : category.trim()) {
+            case "手枪":
+                baseCu = 10; baseGp = 2; count = 45; group = "pd_cartridges"; break;
+            case "PDW":
+                baseCu = 12; baseGp = 2; count = 48; group = "pd_cartridges"; break;
+            case "步枪":
+                baseCu = 15; baseGp = 3; count = 40; group = "ifp_rifle_cartridges"; break;
+            case "霰弹枪":
+                baseCu = 15; baseGp = 5; count = 18; group = "shotgun_shells"; break;
+            case "榴弹":
+                baseCu = 12; baseGp = 8; count = 6; group = "explosives"; break;
+            default: // 信号弹等
+                baseCu = 10; baseGp = 2; count = 24; group = "pd_cartridges"; break;
+        }
+        int copper = baseCu + (int) Math.round(pen / 6.0);                    // 高穿 -> 更多铜
+        int ironNugget = pen >= 40 ? (int) Math.round((pen - 30) / 6.0) : 0;  // AP -> 加铁芯
+        JsonArray materials = new JsonArray();
+        materials.add(material("forge:ingots/copper", Math.max(1, copper)));
+        materials.add(material("forge:gunpowder", Math.max(1, baseGp)));
+        if (ironNugget > 0) {
+            materials.add(material("forge:nuggets/iron", ironNugget));
+        }
+        JsonObject result = new JsonObject();
+        result.addProperty("type", "ammo");
+        result.addProperty("group", group);
+        result.addProperty("id", NS + ":" + calId + "/" + model);
+        result.addProperty("count", count);
+        JsonObject recipe = new JsonObject();
+        recipe.add("materials", materials);
+        recipe.add("result", result);
+        recipe.addProperty("type", "tacz:gun_smith_table_crafting");
+        return recipe;
+    }
+
+    private static JsonObject material(String tag, int count) {
+        JsonObject item = new JsonObject();
+        item.addProperty("tag", tag);
+        JsonObject m = new JsonObject();
+        m.add("item", item);
+        m.addProperty("count", count);
+        return m;
     }
 
     // ==== CSV / 数值工具 ====

@@ -1,0 +1,23 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 18,
+      "item": {
+        "tag": "forge:ingots/copper"
+      }
+    },
+    {
+      "count": 5,
+      "item": {
+        "tag": "forge:gunpowder"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 18,
+    "group": "shotgun_shells",
+    "id": "tacz_caliber_ammo:12_70/dual_sabot"
+  }
+}

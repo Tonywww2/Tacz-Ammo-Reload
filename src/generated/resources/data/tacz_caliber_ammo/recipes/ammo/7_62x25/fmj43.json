@@ -1,0 +1,23 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 12,
+      "item": {
+        "tag": "forge:ingots/copper"
+      }
+    },
+    {
+      "count": 2,
+      "item": {
+        "tag": "forge:gunpowder"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 45,
+    "group": "pd_cartridges",
+    "id": "tacz_caliber_ammo:7_62x25/fmj43"
+  }
+}
