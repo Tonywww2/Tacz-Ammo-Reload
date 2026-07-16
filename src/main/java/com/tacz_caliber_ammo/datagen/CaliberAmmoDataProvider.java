@@ -158,6 +158,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
         List<CompletableFuture<?>> futures = new ArrayList<>();
         Set<String> calibersSeen = new LinkedHashSet<>();
         Map<String, String> calNames = new HashMap<>();
+        Map<String, String> firstModelByCal = new HashMap<>();
         int sort = 10, written = 0, skipped = 0;
 
         for (int i = 1; i < lines.size(); i++) {
@@ -235,6 +236,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
             }
             calibersSeen.add(calId);
             calNames.putIfAbsent(calId, caliberDisplayName(c[iCal]));
+            firstModelByCal.putIfAbsent(calId, model);
             written++;
         }
 
@@ -260,8 +262,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
             uj.addProperty("pelletCount", 0);
             futures.add(DataProvider.saveStable(cache, uj,
                     root.resolve("data/" + NS + "/index/ammo/" + uCal + "/" + uModel + ".json")));
-            futures.add(DataProvider.saveStable(cache, buildRecipe(uCal, uModel, "", 0),
-                    root.resolve("data/" + NS + "/recipes/ammo/" + uCal + "/" + uModel + ".json")));
+            // 万用弹不生成配方（不可合成）：仅注册弹药本体, 获取途径由外部（战利品/指令/其它数据包）决定。
             try {
                 byte[] uPng = solidPng(colorFor(uCal), 16);
                 writePng(cache, root.resolve("assets/" + NS + "/textures/ammo/slot/" + uCal + ".png"), uPng);
@@ -284,6 +285,35 @@ public class CaliberAmmoDataProvider implements DataProvider {
             j.addProperty("name", calNames.get(calId));
             futures.add(DataProvider.saveStable(cache, j,
                     root.resolve("data/" + NS + "/calibers/" + calId + ".json")));
+        }
+
+        // 新弹药工作台 advanced_ammo_workbench（本 mod 独立方块, 不覆写 TacZ）：每口径一个独立 tab 页。
+        // TacZ 会为每个 block index 自动生成创造物品（GunSmithTableItem.fillItemCategory, BlockId=index 键）,
+        // 故只需 datagen 出 index/blocks + data/blocks 两个文件即可获得可放置可开启的工作台。
+        {
+            String wbId = "advanced_ammo_workbench";
+            JsonObject idx = new JsonObject();
+            idx.addProperty("name", "block." + NS + "." + wbId + ".name");
+            idx.addProperty("display", "tacz:ammo_workbench"); // 复用 TacZ 弹药工作台外观
+            idx.addProperty("data", NS + ":" + wbId);
+            idx.addProperty("tooltip", "block." + NS + "." + wbId + ".desc");
+            idx.addProperty("id", "tacz:workbench_a");         // 物理方块 1x1x1
+            idx.addProperty("sort", 100);
+            futures.add(DataProvider.saveStable(cache, idx,
+                    root.resolve("data/" + NS + "/index/blocks/" + wbId + ".json")));
+
+            JsonObject blockData = new JsonObject();
+            blockData.addProperty("filter", "tacz:default");   // ^.*$ 放行本 mod 全部配方
+            JsonArray tabs = new JsonArray();
+            List<String> sortedCals = new ArrayList<>(calibersSeen);
+            sortedCals.sort(null);
+            for (String calId : sortedCals) {
+                addAmmoTab(tabs, NS + ":" + calId, calNames.get(calId),
+                        NS + ":" + calId + "/" + firstModelByCal.get(calId));
+            }
+            blockData.add("tabs", tabs);
+            futures.add(DataProvider.saveStable(cache, blockData,
+                    root.resolve("data/" + NS + "/data/blocks/" + wbId + ".json")));
         }
 
         // 无原型口径 -> 纯色占位 (uv/slot 单色 PNG + display, 复用通用 TacZ 子弹几何体)
@@ -386,7 +416,8 @@ public class CaliberAmmoDataProvider implements DataProvider {
         }
         JsonObject result = new JsonObject();
         result.addProperty("type", "ammo");
-        result.addProperty("group", group);
+        // 每口径单开一页：group = 本命名空间口径 id，对应 advanced_ammo_workbench 里为该口径生成的 tab
+        result.addProperty("group", NS + ":" + calId);
         result.addProperty("id", NS + ":" + calId + "/" + model);
         result.addProperty("count", count);
         JsonObject recipe = new JsonObject();
@@ -403,6 +434,23 @@ public class CaliberAmmoDataProvider implements DataProvider {
         m.add("item", item);
         m.addProperty("count", count);
         return m;
+    }
+
+    /**
+     * advanced_ammo_workbench 的一个 tab（口径页）：{@code id} 需与该口径配方的 {@code result.group} 一致；
+     * {@code name} 取口径展示名（无对应翻译键时按字面渲染）；图标用 {@code tacz:ammo} 物品 + {@code AmmoId} nbt（该口径首个弹种）。
+     */
+    private static void addAmmoTab(JsonArray tabs, String id, String name, String ammoId) {
+        JsonObject t = new JsonObject();
+        t.addProperty("id", id);
+        t.addProperty("name", name);
+        JsonObject icon = new JsonObject();
+        icon.addProperty("item", "tacz:ammo");
+        JsonObject nbt = new JsonObject();
+        nbt.addProperty("AmmoId", ammoId);
+        icon.add("nbt", nbt);
+        t.add("icon", icon);
+        tabs.add(t);
     }
 
     // ==== CSV / 数值工具 ====

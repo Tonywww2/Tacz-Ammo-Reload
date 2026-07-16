@@ -1,5 +1,6 @@
 plugins {
     id("dev.architectury.loom") version "1.11-SNAPSHOT"
+    id("me.modmuss50.mod-publish-plugin") version "2.1.1"
 }
 
 // 加载器由节点 gradle.properties 的 loom.platform 决定（当前节点为 forge）
@@ -158,3 +159,41 @@ java {
 // 将 datagen 生成的资源（根 src/generated/resources）并入主源集，随构建打包。
 // 生成目录与手写 src/main/resources 分开；两者不得有同名文件（否则 processResources 重复）。
 sourceSets["main"].resources.srcDir(rootProject.file("src/generated/resources"))
+
+// ---------------------------------------------------------------------------------------------------
+// CurseForge publishing (me.modmuss50.mod-publish-plugin). Uploads this node's remapped jar;
+// the root stonecutter.gradle.kts `publishAllVersions` task releases every loader node at once.
+// Secrets/id are read lazily (only when a publish task runs), so a normal build is unaffected:
+//   - CURSEFORGE_TOKEN env var (CI), or user-level ~/.gradle/gradle.properties curseforge.token (never commit);
+//   - curseforge.projectId (numeric, from the CurseForge About Project page) in gradle.properties (blank for now).
+// Usage:
+//   ./gradlew publishAllVersions                         # every loader node
+//   ./gradlew :1.20.1-forge:publishMods                  # a single node
+//   ./gradlew publishAllVersions -Ppublish.dryRun=true   # full flow, uploads nothing (see scripts/dryrun.ps1)
+// ---------------------------------------------------------------------------------------------------
+publishMods {
+    // Architectury Loom's final (remapped) artifact - not the raw jar task output.
+    file = tasks.named<net.fabricmc.loom.task.RemapJarTask>("remapJar").flatMap { it.archiveFile }
+    version = project.version.toString() // e.g. 0.1.0+1.20.1
+    displayName = "${property("mod.name")} ${property("mod.version")} - MC $mcVersion ($loader)"
+    modLoaders.add(loader)
+    type = STABLE
+
+    // Exercise the whole flow without uploading: -Ppublish.dryRun=true
+    dryRun = providers.gradleProperty("publish.dryRun").map { it.toBoolean() }.orElse(false)
+
+    changelog = providers.environmentVariable("CHANGELOG")
+        .orElse(providers.provider { rootProject.file("CHANGELOG.md").takeIf { it.exists() }?.readText() })
+        .orElse("See the project page.")
+
+    curseforge {
+        projectId = providers.gradleProperty("curseforge.projectId")
+        accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+            .orElse(providers.gradleProperty("curseforge.token"))
+        minecraftVersions.add(mcVersion)
+        javaVersions.add(JavaVersion.toVersion(javaVersion))
+        // TacZ add-on: needed on both client and server (the plugin requires at least one).
+        client = true
+        server = true
+    }
+}

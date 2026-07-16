@@ -17,7 +17,7 @@
   "result": {
     "type": "ammo",
     "count": 40,
-    "group": "ifp_rifle_cartridges",
+    "group": "tacz_caliber_ammo:d45_70",
     "id": "tacz_caliber_ammo:d45_70/shot"
   }
 }

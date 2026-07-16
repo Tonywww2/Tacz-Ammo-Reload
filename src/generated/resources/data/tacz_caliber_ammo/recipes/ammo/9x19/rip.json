@@ -17,7 +17,7 @@
   "result": {
     "type": "ammo",
     "count": 45,
-    "group": "pd_cartridges",
+    "group": "tacz_caliber_ammo:9x19",
     "id": "tacz_caliber_ammo:9x19/rip"
   }
 }

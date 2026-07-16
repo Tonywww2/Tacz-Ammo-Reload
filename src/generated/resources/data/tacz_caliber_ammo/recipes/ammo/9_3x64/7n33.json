@@ -23,7 +23,7 @@
   "result": {
     "type": "ammo",
     "count": 40,
-    "group": "ifp_rifle_cartridges",
+    "group": "tacz_caliber_ammo:9_3x64",
     "id": "tacz_caliber_ammo:9_3x64/7n33"
   }
 }

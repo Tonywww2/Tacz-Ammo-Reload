@@ -17,7 +17,7 @@
   "result": {
     "type": "ammo",
     "count": 48,
-    "group": "pd_cartridges",
+    "group": "tacz_caliber_ammo:5_7x28",
     "id": "tacz_caliber_ammo:5_7x28/ss190"
   }
 }

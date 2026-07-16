@@ -23,7 +23,7 @@
   "result": {
     "type": "ammo",
     "count": 40,
-    "group": "ifp_rifle_cartridges",
+    "group": "tacz_caliber_ammo:12_7x108",
     "id": "tacz_caliber_ammo:12_7x108/b_32"
   }
 }

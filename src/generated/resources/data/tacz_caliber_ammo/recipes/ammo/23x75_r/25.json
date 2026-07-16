@@ -17,7 +17,7 @@
   "result": {
     "type": "ammo",
     "count": 18,
-    "group": "shotgun_shells",
+    "group": "tacz_caliber_ammo:23x75_r",
     "id": "tacz_caliber_ammo:23x75_r/25"
   }
 }

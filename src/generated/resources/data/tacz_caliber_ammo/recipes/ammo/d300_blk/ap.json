@@ -23,7 +23,7 @@
   "result": {
     "type": "ammo",
     "count": 40,
-    "group": "ifp_rifle_cartridges",
+    "group": "tacz_caliber_ammo:d300_blk",
     "id": "tacz_caliber_ammo:d300_blk/ap"
   }
 }

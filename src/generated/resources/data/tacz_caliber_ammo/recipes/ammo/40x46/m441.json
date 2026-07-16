@@ -17,7 +17,7 @@
   "result": {
     "type": "ammo",
     "count": 6,
-    "group": "explosives",
+    "group": "tacz_caliber_ammo:40x46",
     "id": "tacz_caliber_ammo:40x46/m441"
   }
 }

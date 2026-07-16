@@ -3,7 +3,7 @@
   "armorIgnore": 0.1,
   "baseDamage": 29.0,
   "caliber": "12_70",
-  "display": "tacz:12g_display",
+  "display": "tacz_caliber_ammo:12_70_copper_sabot_premier_display",
   "headShotMultiplier": 1.55,
   "name": "ammo.tacz_caliber_ammo.12_70.copper_sabot_premier",
   "pelletCount": 1,

@@ -9,3 +9,16 @@ stonecutter parameters {
     // 启用版本化注释常量：//? if forge { ... } / //? if neoforge { ... }
     constants { match(loader, "forge", "neoforge") }
 }
+
+// ---------------------------------------------------------------------------------------------------
+// One command publishes every loader node: run publishMods (CurseForge upload, see build.gradle.kts)
+// on each Stonecutter node, independent of the active node.   ./gradlew publishAllVersions
+// ---------------------------------------------------------------------------------------------------
+tasks.register("publishAllVersions") {
+    group = "publishing"
+    description = "Builds and publishes every Minecraft/loader version to CurseForge."
+    dependsOn(stonecutter.tasks.named("publishMods").map { it.values })
+}
+
+// Upload each loader's artifact serially to avoid CurseForge API rate limits.
+stonecutter.tasks.order("publishCurseforge")

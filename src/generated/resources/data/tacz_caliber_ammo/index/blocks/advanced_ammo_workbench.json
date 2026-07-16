@@ -1,0 +1,8 @@
+{
+  "data": "tacz_caliber_ammo:advanced_ammo_workbench",
+  "display": "tacz:ammo_workbench",
+  "id": "tacz:workbench_a",
+  "name": "block.tacz_caliber_ammo.advanced_ammo_workbench.name",
+  "sort": 100,
+  "tooltip": "block.tacz_caliber_ammo.advanced_ammo_workbench.desc"
+}

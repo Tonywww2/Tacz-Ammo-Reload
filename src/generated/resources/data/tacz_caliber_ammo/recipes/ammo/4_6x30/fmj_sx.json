@@ -23,7 +23,7 @@
   "result": {
     "type": "ammo",
     "count": 48,
-    "group": "pd_cartridges",
+    "group": "tacz_caliber_ammo:4_6x30",
     "id": "tacz_caliber_ammo:4_6x30/fmj_sx"
   }
 }

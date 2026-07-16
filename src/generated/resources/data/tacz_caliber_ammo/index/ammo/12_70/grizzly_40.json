@@ -3,7 +3,7 @@
   "armorIgnore": 0.05,
   "baseDamage": 26.5,
   "caliber": "12_70",
-  "display": "tacz:12g_display",
+  "display": "tacz_caliber_ammo:12_70_grizzly_40_display",
   "headShotMultiplier": 1.35,
   "name": "ammo.tacz_caliber_ammo.12_70.grizzly_40",
   "pelletCount": 1,

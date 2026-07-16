@@ -1,9 +1,9 @@
-# TacZ Caliber Ammo
+# TacZ: Caliber Ammo / TacZ：火力重塑
 
 > 为 **Timeless and Classics Zero (TacZ)** 打造的「口径 (Caliber)」弹药系统。
 > Minecraft 1.20.1 · Forge 47+ · Java 17 · 依赖 TacZ
 
-`TacZ Caliber Ammo` 把 TacZ 的伤害归属从「枪决定一切」改成「**口径 + 弹种决定一切**」：
+`TacZ Caliber Ammo` 把 TacZ 的伤害归属从「枪决定一切」改成「**口径 + 弹种**」：
 枪只负责认它能吃哪种口径，真正的伤害、护甲穿透、爆头倍率、后坐力、精度、初速、弹丸数都写在**弹药**上。
 于是同一把枪、同一口径下的不同弹种（FMJ / JHP / AP / 曳光 / 霰弹……）会有各自的性能，
 混装弹匣时还能**逐发按装填顺序**生效。

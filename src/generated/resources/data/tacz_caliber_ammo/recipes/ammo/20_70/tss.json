@@ -17,7 +17,7 @@
   "result": {
     "type": "ammo",
     "count": 18,
-    "group": "shotgun_shells",
+    "group": "tacz_caliber_ammo:20_70",
     "id": "tacz_caliber_ammo:20_70/tss"
   }
 }

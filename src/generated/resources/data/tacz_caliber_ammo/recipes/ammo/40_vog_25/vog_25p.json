@@ -17,7 +17,7 @@
   "result": {
     "type": "ammo",
     "count": 6,
-    "group": "explosives",
+    "group": "tacz_caliber_ammo:40_vog_25",
     "id": "tacz_caliber_ammo:40_vog_25/vog_25p"
   }
 }

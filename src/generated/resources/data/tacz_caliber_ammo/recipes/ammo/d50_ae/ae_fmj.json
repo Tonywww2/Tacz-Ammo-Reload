@@ -23,7 +23,7 @@
   "result": {
     "type": "ammo",
     "count": 45,
-    "group": "pd_cartridges",
+    "group": "tacz_caliber_ammo:d50_ae",
     "id": "tacz_caliber_ammo:d50_ae/ae_fmj"
   }
 }

@@ -55,9 +55,21 @@ public class GunCaliberModifyProvider implements DataProvider {
         dmgRoot.add("guns", dmgGuns);
         Path dmgPath = output.getOutputFolder().resolve("data/" + NS + "/modify_gun_caliber/tacz_gun_damage.json");
 
+        // m700 狙击步枪: 手动配置双口径 7.62x51 NATO + .30-06 Springfield（数组形式, 仅覆盖口径）
+        JsonObject m700Root = new JsonObject();
+        m700Root.addProperty("priority", 0);
+        JsonObject m700Guns = new JsonObject();
+        JsonArray m700Cal = new JsonArray();
+        m700Cal.add(NS + ":7_62x51");
+        m700Cal.add(NS + ":d30_06");
+        m700Guns.add("tacz:m700", m700Cal);
+        m700Root.add("guns", m700Guns);
+        Path m700Path = output.getOutputFolder().resolve("data/" + NS + "/modify_gun_caliber/tacz_m700_calibers.json");
+
         return CompletableFuture.allOf(
                 DataProvider.saveStable(cache, root, path),
-                DataProvider.saveStable(cache, dmgRoot, dmgPath));
+                DataProvider.saveStable(cache, dmgRoot, dmgPath),
+                DataProvider.saveStable(cache, m700Root, m700Path));
     }
 
     @Override

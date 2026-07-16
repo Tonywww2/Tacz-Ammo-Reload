@@ -23,7 +23,7 @@
   "result": {
     "type": "ammo",
     "count": 40,
-    "group": "ifp_rifle_cartridges",
+    "group": "tacz_caliber_ammo:d50_bmg",
     "id": "tacz_caliber_ammo:d50_bmg/bmg_m21"
   }
 }

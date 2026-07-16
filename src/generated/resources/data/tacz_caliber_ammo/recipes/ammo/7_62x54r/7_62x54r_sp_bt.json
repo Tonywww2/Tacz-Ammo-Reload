@@ -17,7 +17,7 @@
   "result": {
     "type": "ammo",
     "count": 40,
-    "group": "ifp_rifle_cartridges",
+    "group": "tacz_caliber_ammo:7_62x54r",
     "id": "tacz_caliber_ammo:7_62x54r/7_62x54r_sp_bt"
   }
 }

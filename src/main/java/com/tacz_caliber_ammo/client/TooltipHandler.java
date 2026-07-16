@@ -60,6 +60,20 @@ public final class TooltipHandler {
                 .withStyle(ChatFormatting.GRAY);
     }
 
+    /** 枪的口径名列表（过滤 none/universal，有序）；空 = 无配置口径。供 tooltip 表格排列（{@code ClientGunTooltipMixin}）。 */
+    public static List<String> gunCaliberNames(ResourceLocation gunId) {
+        List<String> names = new ArrayList<>();
+        if (gunId == null) {
+            return names;
+        }
+        for (ResourceLocation c : CaliberManager.getGunCalibers(gunId)) {
+            if (c != null && !CaliberManager.NONE.equals(c) && !CaliberManager.UNIVERSAL.equals(c)) {
+                names.add(CaliberManager.getCaliber(c).name());
+            }
+        }
+        return names;
+    }
+
     /**
      * 枪的伤害修正展示行（固定伤害 + 百分比伤害，均来自 {@link CaliberManager#getGunModifier}）。
      * 仅列出非 0 项：固定伤害显示带符号绝对值（+0.5），百分比显示带符号百分数（+5%）；正=绿(增伤)、负=红。
