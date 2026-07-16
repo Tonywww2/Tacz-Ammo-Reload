@@ -116,6 +116,7 @@ public class ClientGunTooltipMixin {
         if (this.shouldShow(GunTooltipPart.AMMO_INFO)) {
             // 口径表格(上, 列１标签+列２/列３每行两口径) + 两列表格(A=容量, B=装填)。标签浅灰; 口径/容量上限/abbr=橙; 容量当前/数量=白。
             List<Component> bullets = this.taczCaliberAmmo$loadedAmmoLines();
+            Component barrel = this.taczCaliberAmmo$barrelLine();
             yOffset = this.taczCaliberAmmo$renderCaliberTable(font, pX, yOffset, matrix4f, bufferSource);
             // 容量/装填 列名
             int colBx = pX + this.taczCaliberAmmo$colAWidth(font) + TACZ_CALIBER_AMMO$COLUMN_GAP;
@@ -124,23 +125,24 @@ public class ClientGunTooltipMixin {
             font.drawInBatch(Component.translatable(TACZ_CALIBER_AMMO$COL_B_KEY), (float) colBx, (float) yOffset,
                     TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             yOffset += 10;
-            // 膛内子弹(若有): 作为弹匣区一部分, 置于"容量/装填"列名与弹量明细之间, 独占一行, 格式"膛内 1x 型号"(型号黄)
-            Component barrel = this.taczCaliberAmmo$barrelLine();
-            if (barrel != null) {
-                font.drawInBatch(barrel, (float) pX, (float) yOffset, TACZ_CALIBER_AMMO$LABEL, false, matrix4f,
-                        bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
-                yOffset += 10;
-            }
-            // A 列容量当前/上限 + B 列弹匣逐发明细
+            // A 列: 容量当前/上限(仅第一数据行)
             if (this.ammoCountText != null) {
                 font.drawInBatch(this.taczCaliberAmmo$capacityText(), (float) pX, (float) yOffset,
                         TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             }
-            for (int i = 0; i < bullets.size(); i++) {
-                font.drawInBatch(bullets.get(i), (float) colBx, (float) (yOffset + i * 10),
-                        TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+            // B 列: 膛内型号(第一行, 若有) + 弹匣逐发明细
+            int bRow = 0;
+            if (barrel != null) {
+                font.drawInBatch(barrel, (float) colBx, (float) (yOffset + bRow * 10), TACZ_CALIBER_AMMO$LABEL,
+                        false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+                bRow++;
             }
-            yOffset += Math.max(1, bullets.size()) * 10;
+            for (int i = 0; i < bullets.size(); i++) {
+                font.drawInBatch(bullets.get(i), (float) colBx, (float) (yOffset + bRow * 10),
+                        TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+                bRow++;
+            }
+            yOffset += Math.max(1, bRow) * 10;
         }
         if (this.shouldShow(GunTooltipPart.BASE_INFO)) {
             // 经验等级/damage 已移除; 仅保留 gunType(类型): 标签"类型："浅灰(param), 类型名保留原样式(青)
@@ -188,11 +190,10 @@ public class ClientGunTooltipMixin {
             h -= 14; // 去"按 Z 改造"提示
         }
         if (this.shouldShow(GunTooltipPart.AMMO_INFO)) {
-            int rows = 1 + Math.max(1, this.taczCaliberAmmo$loadedAmmoLines().size());
+            int bRows = (this.taczCaliberAmmo$barrelLine() != null ? 1 : 0)
+                    + this.taczCaliberAmmo$loadedAmmoLines().size();
+            int rows = 1 + Math.max(1, bRows);
             rows += this.taczCaliberAmmo$caliberRows();
-            if (this.taczCaliberAmmo$barrelLine() != null) {
-                rows += 1;
-            }
             h += rows * 10 - 24;
         }
         // 枪伤害修正行(枪种之下, 移动速度之上): 每行 10 + 块首 4 间距
@@ -221,16 +222,16 @@ public class ClientGunTooltipMixin {
             return;
         }
         int colB = font.width(Component.translatable(TACZ_CALIBER_AMMO$COL_B_KEY));
+        Component barrel = this.taczCaliberAmmo$barrelLine();
+        if (barrel != null) {
+            colB = Math.max(colB, font.width(barrel));
+        }
         for (Component line : this.taczCaliberAmmo$loadedAmmoLines()) {
             colB = Math.max(colB, font.width(line));
         }
         int tableWidth = this.taczCaliberAmmo$colAWidth(font) + TACZ_CALIBER_AMMO$COLUMN_GAP + colB;
         this.maxWidth = Math.max(this.maxWidth, tableWidth);
         this.taczCaliberAmmo$widenForCaliberTable(font);
-        Component barrel = this.taczCaliberAmmo$barrelLine();
-        if (barrel != null) {
-            this.maxWidth = Math.max(this.maxWidth, font.width(barrel));
-        }
     }
 
     /** A 列(容量)宽度 = max(列名, 当前/上限弹量文字)。 */
@@ -357,7 +358,7 @@ public class ClientGunTooltipMixin {
             return null;
         }
         return Component.translatable("tooltip.tacz_caliber_ammo.barrel")
-                .append(Component.literal(" 1x ").withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(" "))
                 .append(Component.literal(taczCaliberAmmo$abbrOf(barrelAmmo)).withStyle(ChatFormatting.YELLOW));
     }
 
