@@ -1,6 +1,7 @@
 {
   "accuracy": 5,
   "armorIgnore": 0.0,
+  "ballisticCoefficient": 0.146,
   "baseDamage": 9.0,
   "caliber": "7_62x25",
   "display": "tacz_caliber_ammo:7_62x25_display",

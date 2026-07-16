@@ -1,6 +1,7 @@
 {
   "accuracy": -5,
   "armorIgnore": 0.45,
+  "ballisticCoefficient": 0.4,
   "baseDamage": 11.0,
   "caliber": "d30_06",
   "display": "tacz:30_06_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 3,
-  "sort": 197,
+  "sort": 198,
   "speed": 820,
   "stack_size": 60
 }

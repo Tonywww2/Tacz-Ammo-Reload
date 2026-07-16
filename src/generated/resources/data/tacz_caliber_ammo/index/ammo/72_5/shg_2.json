@@ -1,6 +1,7 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.0,
+  "ballisticCoefficient": 0.1,
   "baseDamage": 28.0,
   "caliber": "72_5",
   "display": "tacz:rpg_rocket_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 0,
-  "sort": 209,
+  "sort": 210,
   "speed": 100,
   "stack_size": 60
 }

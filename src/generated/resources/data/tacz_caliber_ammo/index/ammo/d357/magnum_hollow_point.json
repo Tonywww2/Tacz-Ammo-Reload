@@ -1,6 +1,7 @@
 {
   "accuracy": 15,
   "armorIgnore": 0.15,
+  "ballisticCoefficient": 0.124,
   "baseDamage": 14.0,
   "caliber": "d357",
   "display": "tacz:357mag_display",

@@ -6,8 +6,12 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.tacz.guns.api.item.gun.AbstractGunItem;
+import com.tacz.guns.entity.shooter.ShooterDataHolder;
+import com.tacz_caliber_ammo.duck.ISpeedDecayBullet;
 
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 
 /**
@@ -22,5 +26,19 @@ public class AbstractGunItemMixin {
     @Inject(method = "dropAllAmmo", at = @At("HEAD"), cancellable = true, remap = false)
     private void tacz_caliber_ammo$cancelVanillaDropAllAmmo(Player player, ItemStack gunItem, CallbackInfo ci) {
         ci.cancel();
+    }
+
+    /**
+     * 在子弹散布（初速度已设）之后、spawn 之前，对本 mod 弹药按弹道系数设置飞行 friction（速度衰减，见 {@link ISpeedDecayBullet}）。
+     * 放在此处而非 {@code EntityKineticBullet.shoot()}：TacZ 经 MC {@code Projectile.shootFromRotation}(m_37251_) 发射、
+     * 不走 EKB 自定义 shoot 重载，且该 MC 方法为继承方法无法直接注入 EKB。此处在 spawn 前设定，friction 可随 spawn 数据同步到客户端。
+     */
+    @Inject(method = "doBulletSpread", at = @At("TAIL"), remap = false)
+    private void tacz_caliber_ammo$initBulletSpeedDecay(ShooterDataHolder dataHolder, ItemStack gunItem,
+            LivingEntity shooter, Projectile projectile, int bulletCnt, float processedSpeed, float inaccuracy,
+            float pitch, float yaw, CallbackInfo ci) {
+        if (projectile instanceof ISpeedDecayBullet bullet) {
+            bullet.taczCaliberAmmo$initSpeedDecay();
+        }
     }
 }

@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.tacz.guns.api.GunProperties;
 import com.tacz.guns.entity.EntityKineticBullet;
 import com.tacz.guns.resource.pojo.data.gun.BulletData;
 import com.tacz.guns.resource.pojo.data.gun.ExtraDamage;
@@ -19,6 +20,7 @@ import com.tacz_caliber_ammo.caliber.AmmoProfile;
 import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.caliber.GunDamageModifier;
 import com.tacz_caliber_ammo.config.ModConfig;
+import com.tacz_caliber_ammo.duck.ISpeedDecayBullet;
 import com.tacz_caliber_ammo.effect.AmmoEffectDispatcher;
 import com.tacz_caliber_ammo.effect.AmmoEffectScriptAPI;
 import com.tacz_caliber_ammo.util.DebugLog;
@@ -40,7 +42,7 @@ import net.minecraft.world.phys.Vec3;
  * CR-1: 目标 TacZ 类 EntityKineticBullet, 置 remap=false(其字段/构造非 MC 映射)。
  */
 @Mixin(value = EntityKineticBullet.class, remap = false)
-public class EntityKineticBulletMixin {
+public class EntityKineticBulletMixin implements ISpeedDecayBullet {
 
     @Shadow
     private LinkedList<ExtraDamage.DistanceDamagePair> damageAmount;
@@ -58,6 +60,20 @@ public class EntityKineticBulletMixin {
     private float damageModifier;
     @Shadow
     private float shotDamageMultiplier;
+    @Shadow
+    private Vec3 startPos;
+    @Shadow
+    private float distanceAmount;
+    @Shadow
+    private float friction;
+    @Shadow
+    private int life;
+
+    /** TacZ 私有：对给定属性 id 应用配件修正（用于叠加 DAMAGE 配件加成）。@Shadow 存根。 */
+    @Shadow
+    private <T> T modifyProperty(String id, Class<T> type, T original) {
+        throw new AssertionError();
+    }
     // ==== TacZ 子弹的效果实例字段（构造末由 gun cacheProperty 读入；本 mixin 按弹药 effects 覆写） ====
     @Shadow
     private boolean explosion;
@@ -79,6 +95,12 @@ public class EntityKineticBulletMixin {
     private int igniteEntityTime;
     @Shadow
     private float knockback;
+
+    /** dev-only 速度衰减测试：本发子弹初速(blocks/tick)与下一次记录的距离阈值(格)。见 taczCaliberAmmo$logSpeedDecayTick。 */
+    @Unique
+    private double taczCaliberAmmo$muzzleSpeed = 0.0;
+    @Unique
+    private double taczCaliberAmmo$nextSpeedLogAt = 0.0;
 
     @Inject(
         method = "<init>(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/resources/ResourceLocation;Lnet/minecraft/resources/ResourceLocation;Lnet/minecraft/resources/ResourceLocation;ZLcom/tacz/guns/resource/pojo/data/gun/GunData;Lcom/tacz/guns/resource/pojo/data/gun/BulletData;)V",
@@ -127,8 +149,32 @@ public class EntityKineticBulletMixin {
         if (self.level().isClientSide()) {
             return;
         }
+        taczCaliberAmmo$logSpeedDecayTick(self);
         AmmoEffectDispatcher.dispatch(self.getAmmoId(), "on_bullet_tick",
                 () -> new AmmoEffectScriptAPI(self, null, self.position(), "on_bullet_tick"));
+    }
+
+    /**
+     * dev-only 速度衰减测试日志：每飞约 25 格记录一次子弹的已飞直线距离、当前速度、速度百分比(当前/初速)与 friction，
+     * 便于在 runClient/runServer 里对照标定曲线（如 BC=0.3 应约 125 格 78%、250 格 54%）。
+     * 仅开发环境（{@link DebugLog#ENABLED}）、且 shoot 已记录初速（本 mod 弹药 + 速度衰减开启）时输出。
+     */
+    @Unique
+    private void taczCaliberAmmo$logSpeedDecayTick(EntityKineticBullet self) {
+        if (!DebugLog.ENABLED || this.taczCaliberAmmo$muzzleSpeed <= 0.0) {
+            return;
+        }
+        double dist = self.position().distanceTo(this.startPos);
+        if (dist < this.taczCaliberAmmo$nextSpeedLogAt) {
+            return;
+        }
+        double speed = self.getDeltaMovement().length();
+        double pct = speed / this.taczCaliberAmmo$muzzleSpeed * 100.0;
+        DebugLog.log("speedDecay: ammo={} dist={}blk speed={}/{} ({}%) friction={}",
+                this.ammoId, String.format("%.1f", dist), String.format("%.3f", speed),
+                String.format("%.3f", this.taczCaliberAmmo$muzzleSpeed), String.format("%.1f", pct),
+                String.format("%.5f", this.friction));
+        this.taczCaliberAmmo$nextSpeedLogAt = dist + 25.0; // 下一记录点：再飞 ~25 格
     }
 
     /**
@@ -178,6 +224,77 @@ public class EntityKineticBulletMixin {
                     bulletCount);
             ci.cancel();
         }
+    }
+
+    /**
+     * 优势射程外距离衰减（本 mod 弹药）。TacZ {@code getDamage} 对本 mod 单段曲线的结果是"优势射程内满伤害、
+     * 射程外直接 0"；此处对已配置弹药档的弹药接管：射程内满伤害，射程外按弹道系数(BC)倒数衰减——
+     * {@code damage = base / (1 + (y / (BC*x)) * excess)}，excess = 命中距离 − 优势射程(distanceAmount)。
+     * x = {@link ModConfig#ballisticCoefficientScale()}（BC 乘数），y = {@link ModConfig#rangeDecayRate()}（射程外速率）。
+     * 极端值：BC 先钳制到 [0.01, 1.0]（BC≤0/过小 → 0.01，衰减极快但不瞬间归零；BC≥1 → 1.0，衰减最慢），
+     * 既避免除零又统一语义。y=0 或射程内 → 满伤害。仍过配件 DAMAGE 修正与 {@code shotDamageMultiplier}。
+     * 未配置档弹药不接管（{@code return}，走 TacZ 原 getDamage）。
+     */
+    @Inject(method = "getDamage(Lnet/minecraft/world/phys/Vec3;)F", at = @At("HEAD"), cancellable = true)
+    private void taczCaliberAmmo$rangedDamage(Vec3 hitVec, CallbackInfoReturnable<Float> cir) {
+        AmmoProfile profile = CaliberManager.getAmmoProfile(this.ammoId);
+        if (profile == null || this.damageAmount == null || this.damageAmount.isEmpty()) {
+            return; // 未配置弹药档 -> 保留 TacZ 原 getDamage
+        }
+        double base = this.damageAmount.get(0).getDamage(); // 已含本 mod gunMod 的每发伤害
+        double excess = hitVec.distanceTo(this.startPos) - this.distanceAmount; // 超出优势射程的距离（格）
+        double y = ModConfig.rangeDecayRate();
+        double factor;
+        if (excess <= 0.0 || y <= 0.0) {
+            factor = 1.0; // 优势射程内、或关闭射程外衰减(y=0) -> 满伤害
+        } else {
+            float bc = Mth.clamp(profile.ballisticCoefficient(), 0.01f, 1.0f); // 极端值钳制到 [0.01, 1.0]
+            double rate = y / (bc * ModConfig.ballisticCoefficientScale()); // y / (BC*x)
+            factor = 1.0 / (1.0 + rate * excess); // 倒数衰减
+        }
+        float damaged = (float) (base * factor) * this.damageModifier;
+        float modified = this.modifyProperty(GunProperties.DAMAGE.name(), Float.class, damaged);
+        float result = Math.max(modified * this.shotDamageMultiplier, 0.0f);
+        DebugLog.log("getDamage(ranged): ammo={} gun={} excess={} bc={} factor={} base={} -> {}",
+                this.ammoId, this.gunId, String.format("%.1f", excess), profile.ballisticCoefficient(),
+                String.format("%.3f", factor), base, result);
+        cir.setReturnValue(result);
+    }
+
+    /**
+     * 速度衰减初始化（本 mod 弹药）。由 {@code AbstractGunItemMixin.doBulletSpread}（子弹初速度已设、spawn 之前）
+     * 经 {@link ISpeedDecayBullet} 回调。按弹道系数(BC)设 TacZ bullet friction：每 tick {@code v*=(1-friction)}，
+     * 累积得速度随距离近似线性衰减 {@code 速度% = 1 - (k/BC)*已飞格数}（令 friction=slope*v0 使斜率 k/BC 与初速无关）。
+     * k = {@link ModConfig#speedDecayScale()}；BC 钳制 [0.01,1.0]；friction 再钳到 [0,0.99] 防瞬停。
+     * 在 spawn 前设定 → friction 随 spawn 数据同步到客户端（两端一致）。未配置档/关闭 → 保留 TacZ 原 friction。
+     */
+    @Override
+    public void taczCaliberAmmo$initSpeedDecay() {
+        if (!ModConfig.enableSpeedDecay()) {
+            return;
+        }
+        AmmoProfile profile = CaliberManager.getAmmoProfile(this.ammoId);
+        if (profile == null) {
+            return; // 未配置弹药档 -> 保留 TacZ 原 friction
+        }
+        double v0 = ((EntityKineticBullet) (Object) this).getDeltaMovement().length();
+        if (v0 <= 1.0e-6) {
+            return; // 无初速（异常）跳过
+        }
+        float bc = Mth.clamp(profile.ballisticCoefficient(), 0.01f, 1.0f); // 极端值钳制到 [0.01, 1.0]
+        double slope = ModConfig.speedDecayScale() / bc;   // 每格速度衰减比例 = k / BC
+        double f = slope * v0;                              // friction = slope * v0 -> 速度% = 1 - slope*距离（与初速无关）
+        this.friction = (float) Mth.clamp(f, 0.0, 0.99);
+        this.taczCaliberAmmo$muzzleSpeed = v0;      // dev 测试：记录初速，供 onBulletTick 算速度%
+        this.taczCaliberAmmo$nextSpeedLogAt = 0.0;  // 从 0 格起按 ~25 格间隔记录飞行速度
+        // 寿命按初速反比延长：初速越慢（如火箭）飞行时间越长 -> life 放大越多，避免高抛物线弹落地前被 life 剔除。
+        // life *= clamp(refSpeed / v0, 1, maxMult)：v0>=refSpeed 不延长，越慢延长越多、封顶 maxMult。
+        double lifeMult = Mth.clamp(ModConfig.speedDecayLifeRefSpeed() / v0, 1.0, ModConfig.speedDecayLifeMaxMult());
+        int oldLife = this.life;
+        this.life = (int) Math.min((double) this.life * lifeMult, Integer.MAX_VALUE);
+        DebugLog.log("initSpeedDecay: ammo={} gun={} v0={} bc={} slope={} -> friction={} life={}*{}={}",
+                this.ammoId, this.gunId, String.format("%.3f", v0), profile.ballisticCoefficient(),
+                String.format("%.5f", slope), this.friction, oldLife, String.format("%.2f", lifeMult), this.life);
     }
 
     @Inject(method = "getDamage(Lnet/minecraft/world/phys/Vec3;)F", at = @At("RETURN"))

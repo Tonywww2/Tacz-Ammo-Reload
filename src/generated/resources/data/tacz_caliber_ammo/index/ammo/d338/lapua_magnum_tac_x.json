@@ -1,6 +1,7 @@
 {
   "accuracy": 10,
   "armorIgnore": 0.15,
+  "ballisticCoefficient": 0.476,
   "baseDamage": 27.5,
   "caliber": "d338",
   "display": "tacz:338_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": -5,
-  "sort": 136,
+  "sort": 137,
   "speed": 880,
   "stack_size": 60
 }

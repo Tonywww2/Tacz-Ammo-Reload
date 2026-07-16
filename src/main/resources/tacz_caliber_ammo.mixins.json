@@ -12,11 +12,14 @@
     "ClientMessageUnloadAttachmentMixin",
     "CommonDataManagerMixin",
     "EntityKineticBulletMixin",
+    "ModernKineticGunItemMixin",
     "ModernKineticGunScriptAPIMixin"
   ],
   "client": [
     "client.CameraSetupEventMixin",
-    "client.ClientGunTooltipMixin"
+    "client.ClientGunTooltipMixin",
+    "client.GunRefitScreenMixin",
+    "client.HideAmmoModifierDiagramsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

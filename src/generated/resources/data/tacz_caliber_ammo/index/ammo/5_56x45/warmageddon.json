@@ -1,6 +1,7 @@
 {
   "accuracy": 10,
   "armorIgnore": 0.0,
+  "ballisticCoefficient": 0.335,
   "baseDamage": 12.5,
   "caliber": "5_56x45",
   "display": "tacz_caliber_ammo:5_56x45_warmageddon_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 10,
-  "sort": 96,
+  "sort": 97,
   "speed": 936,
   "stack_size": 60
 }

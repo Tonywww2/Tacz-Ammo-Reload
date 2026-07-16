@@ -1,15 +1,16 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.25,
+  "ballisticCoefficient": 0.266,
   "baseDamage": 7.5,
   "caliber": "5_45x39",
-  "display": "tacz_caliber_ammo:5_45x39_display",
+  "display": "tacz_caliber_ammo:5_45x39_fmj_display",
   "headShotMultiplier": 1.45,
   "name": "ammo.tacz_caliber_ammo.5_45x39.fmj",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 0,
-  "sort": 80,
+  "sort": 81,
   "speed": 884,
   "stack_size": 60
 }

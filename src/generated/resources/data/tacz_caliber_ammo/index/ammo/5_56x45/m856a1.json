@@ -1,6 +1,7 @@
 {
   "accuracy": -4,
   "armorIgnore": 0.45,
+  "ballisticCoefficient": 0.269,
   "baseDamage": 7.5,
   "caliber": "5_56x45",
   "display": "tacz_caliber_ammo:5_56x45_m856a1_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 4,
-  "sort": 89,
+  "sort": 90,
   "speed": 940,
   "stack_size": 60
 }

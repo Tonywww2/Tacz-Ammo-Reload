@@ -1,6 +1,7 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.65,
+  "ballisticCoefficient": 0.334,
   "baseDamage": 7.0,
   "caliber": "d300_blk",
   "display": "tacz_caliber_ammo:d300_blk_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 3,
-  "sort": 99,
+  "sort": 100,
   "speed": 635,
   "stack_size": 60
 }

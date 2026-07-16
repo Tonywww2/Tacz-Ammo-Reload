@@ -1,6 +1,7 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.25,
+  "ballisticCoefficient": 0.202,
   "baseDamage": 13.5,
   "caliber": "d366_tkm",
   "display": "tacz_caliber_ammo:d366_tkm_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 10,
-  "sort": 145,
+  "sort": 146,
   "speed": 580,
   "stack_size": 60
 }

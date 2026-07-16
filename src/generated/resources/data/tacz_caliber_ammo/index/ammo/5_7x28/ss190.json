@@ -1,6 +1,7 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.45,
+  "ballisticCoefficient": 0.233,
   "baseDamage": 7.0,
   "caliber": "5_7x28",
   "display": "tacz:57x28_display",

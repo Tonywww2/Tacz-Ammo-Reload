@@ -153,7 +153,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
         int iCal = col(header, "口径"), iAmmo = col(header, "弹药"), iDmg = col(header, "伤害"),
                 iPen = col(header, "穿甲"), iFrag = col(header, "破片%"), iProj = col(header, "弹丸数"),
                 iRecoil = col(header, "后坐力%"), iAcc = col(header, "精度%"), iSpeed = col(header, "初速"),
-                iCat = col(header, "分类");
+                iBc = col(header, "弹道系数"), iCat = col(header, "分类");
 
         List<CompletableFuture<?>> futures = new ArrayList<>();
         Set<String> calibersSeen = new LinkedHashSet<>();
@@ -181,6 +181,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
             }
             int d = parseInt(c[iDmg]), pen = parseInt(c[iPen]), proj = parseInt(c[iProj]);
             int recoil = parseInt(c[iRecoil]), accuracy = parseInt(c[iAcc]), speed = parseInt(c[iSpeed]);
+            double ballisticCoefficient = parseDouble(c[iBc]); // 弹道系数（Tarkov 弹道系数列，越大越耐远距离）
             double fragRaw = parseDouble(c[iFrag]);
             double frag = fragRaw > 1.5 ? fragRaw / 100.0 : fragRaw; // CSV 破片% 为百分数
 
@@ -213,6 +214,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
             json.addProperty("accuracy", accuracy);   // 精度%（带符号，可 >100）
             json.addProperty("speed", speed);         // 初速原始值 m/s（运行时 × 配置 bulletSpeedScale / 20）
             json.addProperty("pelletCount", proj);    // 弹丸数
+            json.addProperty("ballisticCoefficient", (float) ballisticCoefficient); // 弹道系数（优势射程外倒数衰减速率 ∝ 1/(BC×x)）
             Path p = root.resolve("data/" + NS + "/index/ammo/" + calId + "/" + model + ".json");
             futures.add(DataProvider.saveStable(cache, json, p));
             // 配方（gun smith table）：参考 TacZ 原版弹药配方（铜+火药），高穿弹耗更多铜、AP 额外加铁芯
@@ -240,7 +242,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
             written++;
         }
 
-        // 万用弹（特殊口径 universal）：固定 baseDamage=7；speed/pelletCount=0 表示不覆写以适配任意枪；
+        // 万用弹（特殊口径 universal）：speed/pelletCount=0 表示不覆写以适配任意枪；
         // 爆头/护穿等取随意合理值。不入 calibersSeen -> 不注册 calibers/*.json、不参与枪的模糊口径匹配；
         // 贴图/display 走本 mod 命名空间纯色占位（universal 无 TacZ 原型）。
         {
@@ -252,14 +254,15 @@ public class CaliberAmmoDataProvider implements DataProvider {
             uj.addProperty("stack_size", 60);
             uj.addProperty("sort", sort++);
             uj.addProperty("caliber", uCal);
-            uj.addProperty("baseDamage", 7.0f);
-            uj.addProperty("armorIgnore", 0.3f);
+            uj.addProperty("baseDamage", 5.0f);
+            uj.addProperty("armorIgnore", 0.1f);
             uj.addProperty("headShotMultiplier", 1.5f);
             uj.addProperty("pierce", 1);
             uj.addProperty("recoil", 0);
             uj.addProperty("accuracy", 0);
             uj.addProperty("speed", 0);
             uj.addProperty("pelletCount", 0);
+            uj.addProperty("ballisticCoefficient", 0.2f); // 万用弹：中庸弹道系数
             futures.add(DataProvider.saveStable(cache, uj,
                     root.resolve("data/" + NS + "/index/ammo/" + uCal + "/" + uModel + ".json")));
             // 万用弹不生成配方（不可合成）：仅注册弹药本体, 获取途径由外部（战利品/指令/其它数据包）决定。

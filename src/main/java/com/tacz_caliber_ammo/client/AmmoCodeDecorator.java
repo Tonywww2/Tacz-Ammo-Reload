@@ -2,6 +2,7 @@ package com.tacz_caliber_ammo.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.tacz.guns.api.item.IAmmo;
+import com.tacz_caliber_ammo.config.ModConfig;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -78,14 +79,20 @@ public final class AmmoCodeDecorator implements IItemDecorator {
     }
 
     /**
-     * 取弹药代号缩写：读该弹药 id 对应的本地化缩写键
-     * {@code ammo.<命名空间>.<路径(/换为.)>.abbr}，并把其中的下划线替换为空格。
-     * 无该键（即未配置代号的弹药）则返回 null —— 不渲染。
-     *
-     * <p>关闭开关：若并列键 {@code <abbr 键>.off} 存在且为真（true/1/yes/on），
-     * 则即使配了 abbr 也不渲染 —— 用于在保留 abbr 定义的同时关闭特定弹药的代号渲染。
+     * 取弹药代号缩写。先看配置 {@link ModConfig#ammoCodeDisplay()}：
+     * <ul>
+     *   <li>{@code NEVER} —— 直接返回 null（始终不渲染）；</li>
+     *   <li>{@code ALWAYS} —— 有 abbr 键用其值、否则用弹药 id 末段作兜底，且忽略 {@code .off} 开关（始终渲染）；</li>
+     *   <li>{@code DEFAULT} —— 跟随 lang：读缩写键 {@code ammo.<命名空间>.<路径(/换为.)>.abbr}，
+     *       无该键返回 null，并列键 {@code <abbr 键>.off} 为真时也返回 null。</li>
+     * </ul>
+     * 下划线一律替换为空格；空串返回 null（不渲染）。
      */
     private static String codeOf(ItemStack stack) {
+        ModConfig.AmmoCodeDisplay mode = ModConfig.ammoCodeDisplay();
+        if (mode == ModConfig.AmmoCodeDisplay.NEVER) {
+            return null; // 配置：始终关闭，无视 lang
+        }
         if (!(stack.getItem() instanceof IAmmo ammo)) {
             return null;
         }
@@ -94,7 +101,16 @@ public final class AmmoCodeDecorator implements IItemDecorator {
             return null;
         }
         String key = "ammo." + ammoId.getNamespace() + "." + ammoId.getPath().replace('/', '.') + ".abbr";
-        if (!I18n.exists(key)) {
+        boolean hasAbbr = I18n.exists(key);
+        if (mode == ModConfig.AmmoCodeDisplay.ALWAYS) {
+            // 配置：始终显示 —— 有 abbr 用 abbr（忽略 .off），否则用弹药 id 末段兜底。
+            String path = ammoId.getPath();
+            String raw = hasAbbr ? I18n.get(key) : path.substring(path.lastIndexOf('/') + 1);
+            String code = raw.replace('_', ' ').trim();
+            return code.isEmpty() ? null : code;
+        }
+        // 配置：DEFAULT —— 跟随 lang（需 abbr 存在，且 .off 不为真）。
+        if (!hasAbbr) {
             return null;
         }
         // 关闭开关：并列键 <abbr 键>.off 为真时，保留 abbr 但不渲染该弹药的代号。

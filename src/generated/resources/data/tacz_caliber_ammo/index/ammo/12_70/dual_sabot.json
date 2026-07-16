@@ -1,6 +1,7 @@
 {
   "accuracy": 100,
   "armorIgnore": 0.15,
+  "ballisticCoefficient": 0.074,
   "baseDamage": 7.5,
   "caliber": "12_70",
   "display": "tacz_caliber_ammo:12_70_dual_sabot_display",
@@ -9,7 +10,7 @@
   "pelletCount": 2,
   "pierce": 1,
   "recoil": 15,
-  "sort": 161,
+  "sort": 162,
   "speed": 415,
   "stack_size": 60
 }

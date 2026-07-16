@@ -1,6 +1,7 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.45,
+  "ballisticCoefficient": 0.414,
   "baseDamage": 18.0,
   "caliber": "9_3x64",
   "display": "tacz_caliber_ammo:9_3x64_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": -20,
-  "sort": 156,
+  "sort": 157,
   "speed": 697,
   "stack_size": 60
 }

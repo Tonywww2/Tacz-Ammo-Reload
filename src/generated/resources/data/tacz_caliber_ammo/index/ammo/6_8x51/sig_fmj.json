@@ -1,6 +1,7 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.45,
+  "ballisticCoefficient": 0.405,
   "baseDamage": 11.0,
   "caliber": "6_8x51",
   "display": "tacz_caliber_ammo:6_8x51_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 0,
-  "sort": 98,
+  "sort": 99,
   "speed": 899,
   "stack_size": 60
 }

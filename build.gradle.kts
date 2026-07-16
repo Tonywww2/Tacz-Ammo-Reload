@@ -10,6 +10,11 @@ val mcVersion = property("vers.mcVersion").toString()
 // RunConfigSettings.property 而非 Project.property，故在外层取好。
 val modId = property("mod.id").toString()
 
+// runData（Forge datagen）会走完整 mod-loading、加载 classpath 上所有 mod；KubeJS 等重型测试 mod 会拉起
+// 非 daemon 后台线程，使 datagen 跑完（All providers took…）后 JVM 不退出，runData 卡住不自动结束。
+// 故跑 runData 时整体排除这些纯测试 modLocalRuntime（datagen 只需要本 mod + Forge + TacZ）。
+val isDatagenRun = gradle.startParameter.taskNames.any { it.contains("runData", ignoreCase = true) }
+
 group = property("mod.group").toString()
 version = "${property("mod.version")}+$mcVersion"
 base.archivesName = "${property("mod.id")}-$loader"
@@ -106,19 +111,21 @@ dependencies {
         // 开发期测试辅助 mod：仅本地 dev 运行期加载（modLocalRuntime = 不参与编译、不写入发布依赖，
         // 下游使用者无需安装）。用于验证本 mod 的弹药/口径伤害：
         //   DamageRender —— 在世界内实体头顶显示所受伤害数值；
-        //   Powerful Dummy —— 可定制属性的测试假人，用于 DPS 检测。
+        //   Powerful Dummy —— 可定制属性的测试假人，用于 DPS 检测；
+        //   KubeJS / Rhino / Architectury —— 脚本/测试用（KubeJS 1.20.1 Forge 硬前置 Rhino + Architectury API）。
         // 经 CurseMaven 引入，坐标 = 任意名-项目ID:文件ID（文件均为 Forge 1.20.1 变体）。
-        "modLocalRuntime"("curse.maven:damagerender-1263626:8431126")   // DamageRender-1.20.1-Forge-1.3.3
-        "modLocalRuntime"("curse.maven:powerful-dummy-1276893:7638171") // powerful_dummy-20-0.0.9 (Forge 1.20.1)
+        // 【runData 排除】跑 datagen 时整体不加载：这些重型 mod 会在 datagen 的 mod-loading 里拉起非 daemon
+        // 线程，让 datagen 跑完后 JVM 不退出（runData 卡死）。runClient/runServer 不受影响（isDatagenRun=false）。
+        if (!isDatagenRun) {
+            "modLocalRuntime"("curse.maven:damagerender-1263626:8431126")   // DamageRender-1.20.1-Forge-1.3.3
+            "modLocalRuntime"("curse.maven:powerful-dummy-1276893:7638171") // powerful_dummy-20-0.0.9 (Forge 1.20.1)
 
-        // KubeJS（脚本/测试用，仅本地 dev 运行期）。1.20.1 Forge 硬前置 Rhino + Architectury API，
-        // 三者各自作为独立 mod 引入（CurseMaven/官方 maven 都不会替我们带出前置）：
-        //   KubeJS / Rhino —— 经 CurseMaven（与其余 dev 依赖一致，取各自最新 1.20.1 Forge 文件）；
-        //   Architectury —— 官方 maven，锁 9.1.12（kubejs-forge build.26 的 POM 声明的兼容版本）。
-        // 如需在 Java 里写 KubeJS 集成，把 kubejs 改成 modImplementation（编译期）。
-        "modLocalRuntime"("dev.architectury:architectury-forge:9.1.12") { isTransitive = false }
-        "modLocalRuntime"("curse.maven:rhino-416294:6186971")   // rhino-forge-2001.2.3-build.10 (1.20.1 Forge)
-        "modLocalRuntime"("curse.maven:kubejs-238086:8020595")  // kubejs-forge-2001.6.5-build.26 (1.20.1 Forge)
+            // KubeJS 硬前置 Rhino + Architectury API（各自作为独立 mod 引入）；如需在 Java 里写 KubeJS 集成，
+            // 把 kubejs 改成 modImplementation（编译期）。Architectury 锁 9.1.12（kubejs build.26 POM 的兼容版本）。
+            "modLocalRuntime"("dev.architectury:architectury-forge:9.1.12") { isTransitive = false }
+            "modLocalRuntime"("curse.maven:rhino-416294:6186971")   // rhino-forge-2001.2.3-build.10 (1.20.1 Forge)
+            "modLocalRuntime"("curse.maven:kubejs-238086:8020595")  // kubejs-forge-2001.6.5-build.26 (1.20.1 Forge)
+        }
     }
 }
 

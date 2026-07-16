@@ -1,6 +1,7 @@
 {
   "accuracy": 115,
   "armorIgnore": 0.2,
+  "ballisticCoefficient": 0.057,
   "baseDamage": 21.0,
   "caliber": "12_70",
   "display": "tacz_caliber_ammo:12_70_poleva_6u_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": -10,
-  "sort": 159,
+  "sort": 160,
   "speed": 430,
   "stack_size": 60
 }

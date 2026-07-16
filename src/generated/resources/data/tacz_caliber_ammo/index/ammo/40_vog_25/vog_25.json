@@ -1,6 +1,7 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.05,
+  "ballisticCoefficient": 0.08,
   "baseDamage": 32.0,
   "caliber": "40_vog_25",
   "display": "tacz_caliber_ammo:40_vog_25_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 0,
-  "sort": 215,
+  "sort": 216,
   "speed": 76,
   "stack_size": 60
 }

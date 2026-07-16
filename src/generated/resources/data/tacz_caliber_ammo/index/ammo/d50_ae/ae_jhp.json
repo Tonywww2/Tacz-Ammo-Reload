@@ -1,9 +1,10 @@
 {
   "accuracy": -10,
   "armorIgnore": 0.05,
+  "ballisticCoefficient": 0.122,
   "baseDamage": 20.5,
   "caliber": "d50_ae",
-  "display": "tacz:50ae_display",
+  "display": "tacz_caliber_ammo:d50_ae_ae_jhp_display",
   "headShotMultiplier": 1.7,
   "name": "ammo.tacz_caliber_ammo.d50_ae.ae_jhp",
   "pelletCount": 1,

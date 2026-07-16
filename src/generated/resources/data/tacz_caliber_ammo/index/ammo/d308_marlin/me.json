@@ -1,6 +1,7 @@
 {
   "accuracy": -2,
   "armorIgnore": 0.55,
+  "ballisticCoefficient": 0.346,
   "baseDamage": 11.0,
   "caliber": "d308_marlin",
   "display": "tacz_caliber_ammo:d308_marlin_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 3,
-  "sort": 105,
+  "sort": 106,
   "speed": 838,
   "stack_size": 60
 }

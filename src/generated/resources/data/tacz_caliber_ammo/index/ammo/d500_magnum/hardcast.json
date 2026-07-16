@@ -1,6 +1,7 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.4,
+  "ballisticCoefficient": 0.2,
   "baseDamage": 15.5,
   "caliber": "d500_magnum",
   "display": "tacz:500mag_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 15,
-  "sort": 188,
+  "sort": 189,
   "speed": 520,
   "stack_size": 60
 }

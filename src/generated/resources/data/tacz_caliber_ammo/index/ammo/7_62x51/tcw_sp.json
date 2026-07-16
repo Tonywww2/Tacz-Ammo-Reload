@@ -1,15 +1,16 @@
 {
   "accuracy": 20,
   "armorIgnore": 0.35,
+  "ballisticCoefficient": 0.446,
   "baseDamage": 12.0,
   "caliber": "7_62x51",
-  "display": "tacz:308_display",
+  "display": "tacz_caliber_ammo:7_62x51_tcw_sp_display",
   "headShotMultiplier": 1.5,
   "name": "ammo.tacz_caliber_ammo.7_62x51.tcw_sp",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": -3,
-  "sort": 122,
+  "sort": 123,
   "speed": 800,
   "stack_size": 60
 }

@@ -1,6 +1,7 @@
 {
   "accuracy": 80,
   "armorIgnore": 0.05,
+  "ballisticCoefficient": 0.222,
   "baseDamage": 26.5,
   "caliber": "12_70",
   "display": "tacz_caliber_ammo:12_70_grizzly_40_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 20,
-  "sort": 164,
+  "sort": 165,
   "speed": 390,
   "stack_size": 60
 }

@@ -241,9 +241,9 @@ public final class CaliberManager {
             if (min == null) {
                 continue; // 该口径无内容弹药可参照 -> 保留 TacZ 派生伤害
             }
-            // 本体子弹：同口径最低伤害；爆头 120%（headShotMultiplier=1.2f）；其余属性全 0
+            // 本体子弹：同口径最低伤害；爆头 120%（headShotMultiplier=1.2f）；弹道系数 0.3（中庸，避免射程外瞬间归零）；其余属性全 0
             NATIVE_PROFILE.put(ammoId, new AmmoProfile(e.getValue(), min,
-                    0f, 1.2f, 0, 0f, 0f, 0f, 0, AmmoEffects.EMPTY));
+                    0f, 1.2f, 0, 0f, 0f, 0f, 0, 0.3f, AmmoEffects.EMPTY));
         }
         LOGGER.info("[tacz_caliber_ammo] built {} native-ammo low profile(s) (同口径最低伤害 + 爆头120% + 其余全 0)", NATIVE_PROFILE.size());
     }
@@ -394,10 +394,11 @@ public final class CaliberManager {
         float accuracyModifier = getFloat(o, "accuracy", 0f);  // 精度%（带符号，可 >100）
         float speed = getFloat(o, "speed", 0f);                // 初速原始值 m/s（0 = 不覆写）
         int pelletCount = o.has("pelletCount") ? o.get("pelletCount").getAsInt() : 0; // 弹丸数（0 = 不覆写）
+        float ballisticCoefficient = getFloat(o, "ballisticCoefficient", 0.3f); // 弹道系数（默认 0.3；越大伤害随距离衰减越慢）
         AmmoEffects effects = parseEffects(o.has("effects") && o.get("effects").isJsonObject()
                 ? o.getAsJsonObject("effects") : null);
         return new AmmoProfile(caliber, baseDamage, armorIgnore, headShot, pierce,
-                recoilModifier, accuracyModifier, speed, pelletCount, effects);
+                recoilModifier, accuracyModifier, speed, pelletCount, ballisticCoefficient, effects);
     }
 
     /** 解析弹药 JSON 的可选 {@code effects{}} 子块 -&gt; {@link AmmoEffects}；无则 {@link AmmoEffects#EMPTY}。 */

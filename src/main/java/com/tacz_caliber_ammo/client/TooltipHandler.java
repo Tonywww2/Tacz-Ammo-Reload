@@ -122,6 +122,7 @@ public final class TooltipHandler {
                 out.add(valueLine("tooltip.tacz_caliber_ammo.armor_ignore", percent(p.armorIgnore())));
                 out.add(valueLine("tooltip.tacz_caliber_ammo.headshot", fmt(p.headShotMultiplier())));
                 out.add(valueLine("tooltip.tacz_caliber_ammo.pierce", Integer.toString(p.pierce())));
+                out.add(valueLine("tooltip.tacz_caliber_ammo.ballistic_coefficient", fmt(p.ballisticCoefficient())));
                 if (p.speed() > 0f) {
                     out.add(valueLine("tooltip.tacz_caliber_ammo.speed", fmt(p.speed()) + " m/s"));
                 }

@@ -1,6 +1,7 @@
 {
   "accuracy": 90,
   "armorIgnore": 0.3,
+  "ballisticCoefficient": 0.582,
   "baseDamage": 27.5,
   "caliber": "12_70",
   "display": "tacz_caliber_ammo:12_70_bmg_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 25,
-  "sort": 158,
+  "sort": 159,
   "speed": 410,
   "stack_size": 60
 }

@@ -1,0 +1,5 @@
+{
+  "model": "tacz:ammo/9mm",
+  "slot": "tacz_caliber_ammo:ammo/slot/9x19/fmj_m882",
+  "texture": "tacz:ammo/uv/9mm"
+}

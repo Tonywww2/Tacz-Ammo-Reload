@@ -1,6 +1,7 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.0,
+  "ballisticCoefficient": 0.204,
   "baseDamage": 28.0,
   "caliber": "40x46",
   "display": "tacz:40mm_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 0,
-  "sort": 178,
+  "sort": 179,
   "speed": 76,
   "stack_size": 60
 }

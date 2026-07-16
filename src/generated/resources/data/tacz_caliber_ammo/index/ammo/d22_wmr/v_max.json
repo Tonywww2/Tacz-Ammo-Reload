@@ -1,6 +1,7 @@
 {
   "accuracy": 5,
   "armorIgnore": 0.0,
+  "ballisticCoefficient": 0.1,
   "baseDamage": 7.0,
   "caliber": "d22_wmr",
   "display": "tacz:22wmr_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 0,
-  "sort": 184,
+  "sort": 185,
   "speed": 640,
   "stack_size": 60
 }

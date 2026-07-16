@@ -1,9 +1,10 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.35,
+  "ballisticCoefficient": 0.121,
   "baseDamage": 7.5,
   "caliber": "9x19",
-  "display": "tacz:9mm_display",
+  "display": "tacz_caliber_ammo:9x19_ap_6_3_display",
   "headShotMultiplier": 1.35,
   "name": "ammo.tacz_caliber_ammo.9x19.ap_6_3",
   "pelletCount": 1,

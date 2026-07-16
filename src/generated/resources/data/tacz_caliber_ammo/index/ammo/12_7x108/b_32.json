@@ -1,15 +1,16 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.9,
+  "ballisticCoefficient": 0.63,
   "baseDamage": 26.0,
   "caliber": "12_7x108",
-  "display": "tacz_caliber_ammo:12_7x108_display",
+  "display": "tacz_caliber_ammo:12_7x108_b_32_display",
   "headShotMultiplier": 1.35,
   "name": "ammo.tacz_caliber_ammo.12_7x108.b_32",
   "pelletCount": 1,
   "pierce": 3,
   "recoil": 0,
-  "sort": 210,
+  "sort": 211,
   "speed": 820,
   "stack_size": 60
 }

@@ -1,6 +1,7 @@
 {
   "accuracy": 5,
   "armorIgnore": 0.55,
+  "ballisticCoefficient": 0.35,
   "baseDamage": 11.5,
   "caliber": "7_92x57_mauser",
   "display": "tacz:792x57_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 5,
-  "sort": 200,
+  "sort": 201,
   "speed": 760,
   "stack_size": 60
 }

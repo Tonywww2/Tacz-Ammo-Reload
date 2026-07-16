@@ -1,6 +1,7 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.45,
+  "ballisticCoefficient": 0.25,
   "baseDamage": 13.5,
   "caliber": "d45_70",
   "display": "tacz:45_70_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 20,
-  "sort": 207,
+  "sort": 208,
   "speed": 420,
   "stack_size": 60
 }

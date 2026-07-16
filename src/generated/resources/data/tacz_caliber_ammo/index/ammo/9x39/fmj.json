@@ -1,6 +1,7 @@
 {
   "accuracy": 5,
   "armorIgnore": 0.15,
+  "ballisticCoefficient": 0.343,
   "baseDamage": 10.5,
   "caliber": "9x39",
   "display": "tacz_caliber_ammo:9x39_display",
@@ -9,7 +10,7 @@
   "pelletCount": 1,
   "pierce": 1,
   "recoil": -5,
-  "sort": 142,
+  "sort": 143,
   "speed": 330,
   "stack_size": 60
 }

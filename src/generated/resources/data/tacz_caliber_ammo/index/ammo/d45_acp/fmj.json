@@ -1,9 +1,10 @@
 {
   "accuracy": 0,
   "armorIgnore": 0.25,
+  "ballisticCoefficient": 0.131,
   "baseDamage": 10.0,
   "caliber": "d45_acp",
-  "display": "tacz:45acp_display",
+  "display": "tacz_caliber_ammo:d45_acp_fmj_display",
   "headShotMultiplier": 1.9,
   "name": "ammo.tacz_caliber_ammo.d45_acp.fmj",
   "pelletCount": 1,
