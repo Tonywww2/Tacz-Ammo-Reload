@@ -12,6 +12,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.tacz.guns.api.item.IAmmo;
@@ -20,6 +21,7 @@ import com.tacz.guns.api.item.gun.AbstractGunItem;
 import com.tacz.guns.api.DefaultAssets;
 import com.tacz.guns.item.ModernKineticGunScriptAPI;
 import com.tacz.guns.resource.index.CommonGunIndex;
+import com.tacz.guns.resource.pojo.data.gun.Bolt;
 import com.tacz.guns.resource.pojo.data.gun.BulletData;
 import com.tacz.guns.resource.pojo.data.gun.GunData;
 import com.tacz_caliber_ammo.caliber.AmmoProfile;
@@ -117,28 +119,63 @@ public class ModernKineticGunScriptAPIMixin {
         if (amount <= 0 || this.itemStack == null) {
             return;
         }
-        List<Round> add = this.tacz_caliber_ammo$pendingConsumed;
+        List<Round> consumed = this.tacz_caliber_ammo$pendingConsumed;
         this.tacz_caliber_ammo$pendingConsumed = null;
         List<Round> seq = LoadedAmmoSequence.getSequence(this.itemStack);
-        if (add != null && !add.isEmpty()) {
-            seq.addAll(add);
+        int before = 0;
+        for (Round r : seq) {
+            before += r.count();
+        }
+        int count = this.abstractGunItem.getCurrentAmmoCount(this.itemStack);
+        int need = count - before; // 本次实际进弹匣的发数（consumed 若含进膛的一发会多出，不入匣）
+        if (need > 0) {
+            // 新装填的弹药插入弹匣顶部(队首)：换弹时若弹匣仍有余弹，新装的先于余弹射出(真实弹匣 LIFO)。
+            // 发射从队首出队(popNextRound)，故 index 0 = 下一发。对生存(consumed 非空)/创造(空)统一头部插入。
+            seq.addAll(0, tacz_caliber_ammo$resolveIncoming(consumed, need));
         }
         LoadedAmmoSequence.setSequence(this.itemStack, seq);
-        int count = this.abstractGunItem.getCurrentAmmoCount(this.itemStack);
-        ResourceLocation def = null;
-        if (add != null && !add.isEmpty()) {
-            def = add.get(0).ammoId();
-        } else {
-            // 创造/未真正消耗背包（add 为空）：优先按背包内“该枪匹配口径”的弹药弹种装填/追踪，
-            // 不扣除背包（保持创造无限）；背包无匹配弹药时才回退枪默认弹种（之前的换弹逻辑）。
-            ResourceLocation invVariant = tacz_caliber_ammo$firstMatchingInventoryAmmo();
-            if (invVariant != null) {
-                def = invVariant;
-            } else if (this.gunIndex != null) {
-                def = this.gunIndex.getGunData().getAmmoId();
+        // 兜底：与真实弹匣数对齐(desync 时截断/补齐)；补齐弹种优先取队首(新装)，否则默认弹种。
+        ResourceLocation def = !seq.isEmpty() ? seq.get(0).ammoId() : tacz_caliber_ammo$defaultVariant();
+        LoadedAmmoSequence.reconcile(this.itemStack, count, def);
+    }
+
+    /**
+     * 本次进弹匣 need 发的弹种序列：优先真实消耗的弹种（{@code consumed} 取前 need 发，多出的是进膛弹不入匣，
+     * 从而不会误截断弹匣内原有余弹）；consumed 为空（创造/背包直取）时用背包内该枪匹配弹种、否则枪默认弹种凑齐。
+     */
+    @Unique
+    private List<Round> tacz_caliber_ammo$resolveIncoming(List<Round> consumed, int need) {
+        List<Round> incoming = new ArrayList<>();
+        int left = need;
+        if (consumed != null && !consumed.isEmpty()) {
+            for (Round r : consumed) {
+                if (left <= 0) {
+                    break;
+                }
+                int take = Math.min(left, r.count());
+                if (take > 0 && r.ammoId() != null) {
+                    incoming.add(new Round(r.ammoId(), take));
+                    left -= take;
+                }
             }
         }
-        LoadedAmmoSequence.reconcile(this.itemStack, count, def);
+        if (left > 0) {
+            ResourceLocation d = !incoming.isEmpty() ? incoming.get(0).ammoId() : tacz_caliber_ammo$defaultVariant();
+            if (d != null) {
+                incoming.add(new Round(d, left));
+            }
+        }
+        return incoming;
+    }
+
+    /** 创造/背包直取时的弹种：背包内该枪匹配弹种优先，否则枪默认弹种；均无返回 null。 */
+    @Unique
+    private ResourceLocation tacz_caliber_ammo$defaultVariant() {
+        ResourceLocation inv = tacz_caliber_ammo$firstMatchingInventoryAmmo();
+        if (inv != null) {
+            return inv;
+        }
+        return this.gunIndex != null ? this.gunIndex.getGunData().getAmmoId() : null;
     }
 
     /** 背包内第一颗“该枪匹配口径”的弹药弹种（含弹药盒，跳过空盒/全类型创造盒）；无则 null。仅读取、不扣除。 */
@@ -173,10 +210,59 @@ public class ModernKineticGunScriptAPIMixin {
             at = @At(value = "INVOKE",
                     target = "Lcom/tacz/guns/resource/pojo/data/gun/GunData;getAmmoId()Lnet/minecraft/resources/ResourceLocation;"))
     private ResourceLocation tacz_caliber_ammo$dequeue(GunData gunData) {
-        ResourceLocation popped = LoadedAmmoSequence.popNextRound(this.itemStack);
-        ResourceLocation id = popped != null ? popped : gunData.getAmmoId();
+        ResourceLocation id;
+        if (tacz_caliber_ammo$isManualAction()) {
+            // 泵动/栓动(MANUAL_ACTION): 发射的是膛内弹, 用膛内弹弹种; 膛内无记录则回退弹匣队首
+            id = LoadedAmmoSequence.takeBarrelAmmo(this.itemStack);
+            if (id == null) {
+                id = LoadedAmmoSequence.popNextRound(this.itemStack);
+            }
+        } else {
+            // 自动/半自动: 优先弹匣队首, 弹匣空则打膛内弹
+            id = LoadedAmmoSequence.popNextRound(this.itemStack);
+            if (id == null) {
+                id = LoadedAmmoSequence.takeBarrelAmmo(this.itemStack);
+            }
+        }
+        if (id == null) {
+            id = gunData.getAmmoId();
+        }
         this.tacz_caliber_ammo$firingAmmoId = id;
         return id;
+    }
+
+    /** 该枪是否 MANUAL_ACTION（泵动/栓动，发射消耗的是膛内弹而非弹匣）。 */
+    @Unique
+    private boolean tacz_caliber_ammo$isManualAction() {
+        return this.gunIndex != null && this.gunIndex.getGunData().getBolt() == Bolt.MANUAL_ACTION;
+    }
+
+    /**
+     * 记录膛内弹弹种。TacZ 的膛内弹经 {@code setAmmoInBarrel(true)} 进膛（换弹直接进膛的空仓第一发，
+     * 或泵动/栓动上膛从弹匣移入），从不经过 putAmmoInMagazine，故弹匣序列不含它，须在此单独跟踪。
+     * 发射打膛内弹(直接调 AbstractGunItem.setBulletInBarrel(false)，不经此方法)时不误触发。
+     */
+    @Inject(method = "setAmmoInBarrel", at = @At("HEAD"))
+    private void tacz_caliber_ammo$onSetBarrel(boolean ammoInBarrel, CallbackInfo ci) {
+        if (this.itemStack == null) {
+            return;
+        }
+        if (!ammoInBarrel) {
+            LoadedAmmoSequence.setBarrelAmmo(this.itemStack, null);
+            return;
+        }
+        List<Round> pc = this.tacz_caliber_ammo$pendingConsumed;
+        if (pc != null && !pc.isEmpty()) {
+            // 换弹直接进膛(空仓第一发)：膛内弹 = 刚消耗的弹种（该发不进弹匣，故消费掉 pendingConsumed）
+            LoadedAmmoSequence.setBarrelAmmo(this.itemStack, pc.get(0).ammoId());
+            this.tacz_caliber_ammo$pendingConsumed = null;
+        } else {
+            // 上膛从弹匣移入膛：膛内弹 = 弹匣队首（popNextRound 同步 removeAmmoFromMagazine 已扣的弹匣数）
+            ResourceLocation top = LoadedAmmoSequence.popNextRound(this.itemStack);
+            if (top != null) {
+                LoadedAmmoSequence.setBarrelAmmo(this.itemStack, top);
+            }
+        }
     }
 
     // ==== 弹道：按“当前出膛弹种”每发覆写 初速 / 散布 / 弹丸数 ====
@@ -224,7 +310,7 @@ public class ModernKineticGunScriptAPIMixin {
             at = @At(value = "INVOKE",
                     target = "Lcom/tacz/guns/resource/pojo/data/gun/BulletData;getBulletAmount()I"))
     private int tacz_caliber_ammo$ammoPelletCount(BulletData bulletData) {
-        ResourceLocation next = LoadedAmmoSequence.peekHead(this.itemStack);
+        ResourceLocation next = tacz_caliber_ammo$peekNext();
         if (next != null) {
             AmmoProfile p = CaliberManager.getAmmoProfile(next);
             if (p != null && p.pelletCount() > 0) {
@@ -232,5 +318,19 @@ public class ModernKineticGunScriptAPIMixin {
             }
         }
         return bulletData.getBulletAmount();
+    }
+
+    /**
+     * 下一发要发射的弹种（不消费）：MANUAL_ACTION 看膛内弹优先，其余看弹匣队首优先；
+     * 与 {@link #tacz_caliber_ammo$dequeue} 的取用顺序保持一致，供弹丸数预读。
+     */
+    @Unique
+    private ResourceLocation tacz_caliber_ammo$peekNext() {
+        if (tacz_caliber_ammo$isManualAction()) {
+            ResourceLocation b = LoadedAmmoSequence.peekBarrelAmmo(this.itemStack);
+            return b != null ? b : LoadedAmmoSequence.peekHead(this.itemStack);
+        }
+        ResourceLocation h = LoadedAmmoSequence.peekHead(this.itemStack);
+        return h != null ? h : LoadedAmmoSequence.peekBarrelAmmo(this.itemStack);
     }
 }

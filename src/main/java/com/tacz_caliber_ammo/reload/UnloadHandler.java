@@ -35,6 +35,7 @@ public final class UnloadHandler {
         int count = iGun.getCurrentAmmoCount(gun);
         if (count <= 0) {
             LoadedAmmoSequence.setSequence(gun, Collections.emptyList());
+            LoadedAmmoSequence.setBarrelAmmo(gun, null);
             return;
         }
         ResourceLocation defaultAmmo = TimelessAPI.getCommonGunIndex(iGun.getGunId(gun))
@@ -48,15 +49,21 @@ public final class UnloadHandler {
         }
 
         // 归还弹药：创造模式与 dummy 弹药（非 item）只清空不归还。
+        ResourceLocation barrelAmmo = LoadedAmmoSequence.peekBarrelAmmo(gun);
         if (!player.isCreative() && !iGun.useDummyAmmo(gun)) {
             for (Round round : sequence) {
                 giveAmmo(player, round.ammoId(), round.count());
+            }
+            // 膛内弹（TacZ 膛内那发，不在弹匣序列里）若有跟踪弹种也归还一发
+            if (barrelAmmo != null && iGun.hasBulletInBarrel(gun)) {
+                giveAmmo(player, barrelAmmo, 1);
             }
         }
 
         iGun.setCurrentAmmoCount(gun, 0);
         iGun.setBulletInBarrel(gun, false);
         LoadedAmmoSequence.setSequence(gun, Collections.emptyList());
+        LoadedAmmoSequence.setBarrelAmmo(gun, null);
     }
 
     /** 把 amount 发 ammoId 弹药按其堆叠上限分堆归还给玩家（复用 TacZ 分堆语义）。 */

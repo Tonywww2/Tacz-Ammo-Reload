@@ -96,6 +96,36 @@ public final class LoadedAmmoSequence {
         return id;
     }
 
+    /** 写入膛内弹弹种（null 则清除）。 */
+    public static void setBarrelAmmo(ItemStack gun, ResourceLocation ammoId) {
+        if (ammoId == null) {
+            CompoundTag tag = gun.getTag();
+            if (tag != null) {
+                tag.remove(NbtKeys.BARREL_AMMO);
+            }
+            return;
+        }
+        gun.getOrCreateTag().putString(NbtKeys.BARREL_AMMO, ammoId.toString());
+    }
+
+    /** 查看膛内弹弹种，不清除；无则 null。 */
+    public static ResourceLocation peekBarrelAmmo(ItemStack gun) {
+        CompoundTag tag = gun.getTag();
+        if (tag == null || !tag.contains(NbtKeys.BARREL_AMMO, Tag.TAG_STRING)) {
+            return null;
+        }
+        return ResourceLocation.tryParse(tag.getString(NbtKeys.BARREL_AMMO));
+    }
+
+    /** 取出膛内弹弹种并清除；无则 null。 */
+    public static ResourceLocation takeBarrelAmmo(ItemStack gun) {
+        ResourceLocation id = peekBarrelAmmo(gun);
+        if (id != null) {
+            gun.getTag().remove(NbtKeys.BARREL_AMMO);
+        }
+        return id;
+    }
+
     /**
      * 边界处理：当序列总和与 currentAmmoCount 不一致（旧存档/外部装弹/desync）时，
      * 以 currentAmmoCount 为准，用 defaultAmmoId 于队尾补齐 / 从队尾截断。

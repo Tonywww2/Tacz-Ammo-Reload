@@ -1,8 +1,5 @@
 {
   "guns": {
-    "tacz:ak47": [
-      "tacz_caliber_ammo:7_62x39"
-    ],
     "tacz:rpk": [
       "tacz_caliber_ammo:7_62x39"
     ],

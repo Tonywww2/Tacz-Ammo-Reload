@@ -188,9 +188,15 @@ public class CaliberAmmoDataProvider implements DataProvider {
             double armorIgnore = round(clamp((pen - PEN0) / (double) PEN_SPAN, 0, AI_CAP), 0.05);
             int pierce = 1 + (pen >= P2 ? 1 : 0) + (pen >= P3 ? 1 : 0);
             double headShot = round(clamp(HS_BASE + HS_K * frag, HS_MIN, HS_MAX), 0.05);
-            String display = PROTO.containsKey(calId)
-                    ? "tacz:" + PROTO.get(calId) + "_display"
-                    : NS + ":" + calId + "_display";
+            boolean customSlot = hasCustomSlot(projectRoot, calId, model);
+            String display;
+            if (customSlot) {
+                display = NS + ":" + calId + "_" + model + "_display";
+            } else if (PROTO.containsKey(calId)) {
+                display = "tacz:" + PROTO.get(calId) + "_display";
+            } else {
+                display = NS + ":" + calId + "_display";
+            }
 
             JsonObject json = new JsonObject();
             json.addProperty("name", "ammo." + NS + "." + calId + "." + model);
@@ -212,8 +218,63 @@ public class CaliberAmmoDataProvider implements DataProvider {
             JsonObject recipe = buildRecipe(calId, model, c[iCat], pen);
             futures.add(DataProvider.saveStable(cache, recipe,
                     root.resolve("data/" + NS + "/recipes/ammo/" + calId + "/" + model + ".json")));
+            // 自定义 slot 贴图的弹种：生成 per-变种 display（复用原型 3D 几何/uv，slot 指向各自贴图）
+            if (customSlot) {
+                JsonObject vDisp = new JsonObject();
+                if (PROTO.containsKey(calId)) {
+                    String protoBase = PROTO.get(calId);
+                    vDisp.addProperty("model", "tacz:ammo/" + protoBase);
+                    vDisp.addProperty("texture", "tacz:ammo/uv/" + protoBase);
+                } else {
+                    vDisp.addProperty("model", "tacz:ammo/308");
+                    vDisp.addProperty("texture", NS + ":ammo/uv/" + calId);
+                }
+                vDisp.addProperty("slot", NS + ":ammo/slot/" + calId + "/" + model);
+                futures.add(DataProvider.saveStable(cache, vDisp,
+                        root.resolve("assets/" + NS + "/display/ammo/" + calId + "_" + model + "_display.json")));
+            }
             calibersSeen.add(calId);
             calNames.putIfAbsent(calId, caliberDisplayName(c[iCal]));
+            written++;
+        }
+
+        // 万用弹（特殊口径 universal）：固定 baseDamage=7；speed/pelletCount=0 表示不覆写以适配任意枪；
+        // 爆头/护穿等取随意合理值。不入 calibersSeen -> 不注册 calibers/*.json、不参与枪的模糊口径匹配；
+        // 贴图/display 走本 mod 命名空间纯色占位（universal 无 TacZ 原型）。
+        {
+            String uCal = "universal";
+            String uModel = "round";
+            JsonObject uj = new JsonObject();
+            uj.addProperty("name", "ammo." + NS + "." + uCal + "." + uModel);
+            uj.addProperty("display", NS + ":" + uCal + "_display");
+            uj.addProperty("stack_size", 60);
+            uj.addProperty("sort", sort++);
+            uj.addProperty("caliber", uCal);
+            uj.addProperty("baseDamage", 7.0f);
+            uj.addProperty("armorIgnore", 0.3f);
+            uj.addProperty("headShotMultiplier", 1.5f);
+            uj.addProperty("pierce", 1);
+            uj.addProperty("recoil", 0);
+            uj.addProperty("accuracy", 0);
+            uj.addProperty("speed", 0);
+            uj.addProperty("pelletCount", 0);
+            futures.add(DataProvider.saveStable(cache, uj,
+                    root.resolve("data/" + NS + "/index/ammo/" + uCal + "/" + uModel + ".json")));
+            futures.add(DataProvider.saveStable(cache, buildRecipe(uCal, uModel, "", 0),
+                    root.resolve("data/" + NS + "/recipes/ammo/" + uCal + "/" + uModel + ".json")));
+            try {
+                byte[] uPng = solidPng(colorFor(uCal), 16);
+                writePng(cache, root.resolve("assets/" + NS + "/textures/ammo/slot/" + uCal + ".png"), uPng);
+                writePng(cache, root.resolve("assets/" + NS + "/textures/ammo/uv/" + uCal + ".png"), uPng);
+            } catch (IOException e) {
+                throw new RuntimeException("[tacz_caliber_ammo] 万用弹占位贴图写入失败", e);
+            }
+            JsonObject uDisp = new JsonObject();
+            uDisp.addProperty("model", "tacz:ammo/308");
+            uDisp.addProperty("texture", NS + ":ammo/uv/" + uCal);
+            uDisp.addProperty("slot", NS + ":ammo/slot/" + uCal);
+            futures.add(DataProvider.saveStable(cache, uDisp,
+                    root.resolve("assets/" + NS + "/display/ammo/" + uCal + "_display.json")));
             written++;
         }
 
@@ -251,6 +312,13 @@ public class CaliberAmmoDataProvider implements DataProvider {
         LOGGER.info("[tacz_caliber_ammo] datagen: 写 {} 弹药 / {} 口径 (占位 {}), 跳过空 id {} 条",
                 written, calibersSeen.size(), placeholders, skipped);
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+    }
+
+    /** 该弹种是否有自定义 slot 贴图（src/main/resources 手放）。有则生成 per-变种 display 用各自图标。 */
+    private static boolean hasCustomSlot(Path projectRoot, String calId, String model) {
+        Path png = projectRoot.resolve("src/main/resources/assets/" + NS
+                + "/textures/ammo/slot/" + calId + "/" + model + ".png");
+        return Files.exists(png);
     }
 
     // ==== 型号 id 规范化 ====

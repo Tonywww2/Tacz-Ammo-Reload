@@ -8,6 +8,8 @@
     "AbstractGunItemMixin",
     "AmmoBoxItemDataAccessorMixin",
     "AmmoItemDataAccessorMixin",
+    "ClientMessageRefitGunMixin",
+    "ClientMessageUnloadAttachmentMixin",
     "CommonDataManagerMixin",
     "EntityKineticBulletMixin",
     "ModernKineticGunScriptAPIMixin"

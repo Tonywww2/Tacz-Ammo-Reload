@@ -26,8 +26,12 @@ public abstract class AmmoItemDataAccessorMixin {
         if (gun.getItem() instanceof IGun iGun && ammo.getItem() instanceof IAmmo iAmmo) {
             ResourceLocation gunId = iGun.getGunId(gun);
             ResourceLocation ammoId = iAmmo.getAmmoId(ammo);
-            Set<ResourceLocation> gunCalibers = CaliberManager.getGunCalibers(gunId);
             ResourceLocation ammoCaliber = CaliberManager.getAmmoCaliber(ammoId);
+            // 万用口径: 配置为此口径的弹药对全部枪械生效
+            if (CaliberManager.UNIVERSAL.equals(ammoCaliber)) {
+                return true;
+            }
+            Set<ResourceLocation> gunCalibers = CaliberManager.getGunCalibers(gunId);
             if (!gunCalibers.isEmpty() && ammoCaliber != null) {
                 return gunCalibers.contains(ammoCaliber);
             }

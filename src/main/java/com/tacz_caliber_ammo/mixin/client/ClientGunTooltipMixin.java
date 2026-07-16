@@ -141,6 +141,16 @@ public class ClientGunTooltipMixin {
                 yOffset += 10;
             }
         }
+        // 枪伤害修正(固定/百分比): 枪种之下, 移动速度之上; 仅当该枪配置了非 0 修正时显示
+        List<Component> gunDmg = this.taczCaliberAmmo$gunDamageLines();
+        if (!gunDmg.isEmpty()) {
+            yOffset += 4;
+            for (Component line : gunDmg) {
+                font.drawInBatch(line, (float) pX, (float) yOffset, TACZ_CALIBER_AMMO$LABEL, false,
+                        matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+                yOffset += 10;
+            }
+        }
         if (this.shouldShow(GunTooltipPart.EXTRA_DAMAGE_INFO)) {
             // armorIgnore / headShotMultiplier 已移除(归弹药), 仅保留 weight(移动速度): 保留原本逻辑(TacZ 红色样式)
             font.drawInBatch(this.weight, (float) pX, (float) (yOffset += 4), 0xFFFFFF, false, matrix4f, bufferSource,
@@ -175,6 +185,11 @@ public class ClientGunTooltipMixin {
             }
             h += rows * 10 - 24;
         }
+        // 枪伤害修正行(枪种之下, 移动速度之上): 每行 10 + 块首 4 间距
+        int dmgRows = this.taczCaliberAmmo$gunDamageLines().size();
+        if (dmgRows > 0) {
+            h += dmgRows * 10 + 4;
+        }
         cir.setReturnValue(h);
     }
 
@@ -187,10 +202,14 @@ public class ClientGunTooltipMixin {
     // ---- 撑宽 tooltip 以容纳口径行与弹匣表格 (getText 是 TacZ 自有名, remap 随类=false) ----
     @Inject(method = "getText", at = @At("TAIL"))
     private void taczCaliberAmmo$widenForAmmoTable(CallbackInfo ci) {
+        Font font = Minecraft.getInstance().font;
+        // 枪伤害修正行也要参与撑宽(与 AMMO_INFO 是否显示无关)
+        for (Component line : this.taczCaliberAmmo$gunDamageLines()) {
+            this.maxWidth = Math.max(this.maxWidth, font.width(line));
+        }
         if (!this.shouldShow(GunTooltipPart.AMMO_INFO)) {
             return;
         }
-        Font font = Minecraft.getInstance().font;
         int colB = font.width(Component.translatable(TACZ_CALIBER_AMMO$COL_B_KEY));
         for (Component line : this.taczCaliberAmmo$loadedAmmoLines()) {
             colB = Math.max(colB, font.width(line));
@@ -220,6 +239,15 @@ public class ClientGunTooltipMixin {
             return TooltipHandler.gunCaliberLine(ig.getGunId(this.gun));
         }
         return null;
+    }
+
+    /** 枪伤害修正行(固定/百分比, 移自 TooltipHandler); 非枪或无修正返回空表。 */
+    @Unique
+    private List<Component> taczCaliberAmmo$gunDamageLines() {
+        if (this.gun != null && this.gun.getItem() instanceof IGun ig) {
+            return TooltipHandler.gunDamageModifierLines(ig.getGunId(this.gun));
+        }
+        return List.of();
     }
 
     /** 弹匣内弹药行: 数量(白) + abbr(橙), 按装填顺序, 最多 5 行; 超 5 补 "..."(白); 空弹匣 -> 空表。 */

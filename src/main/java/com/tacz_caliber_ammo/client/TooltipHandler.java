@@ -6,8 +6,10 @@ import java.util.Locale;
 
 import com.tacz.guns.api.item.IAmmo;
 import com.tacz.guns.api.item.IAmmoBox;
+import com.tacz_caliber_ammo.caliber.AmmoEffects;
 import com.tacz_caliber_ammo.caliber.AmmoProfile;
 import com.tacz_caliber_ammo.caliber.CaliberManager;
+import com.tacz_caliber_ammo.caliber.GunDamageModifier;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -46,7 +48,7 @@ public final class TooltipHandler {
         }
         List<String> names = new ArrayList<>();
         for (ResourceLocation c : CaliberManager.getGunCalibers(gunId)) {
-            if (c != null && !CaliberManager.NONE.equals(c)) {
+            if (c != null && !CaliberManager.NONE.equals(c) && !CaliberManager.UNIVERSAL.equals(c)) {
                 names.add(CaliberManager.getCaliber(c).name());
             }
         }
@@ -56,6 +58,29 @@ public final class TooltipHandler {
         return Component.translatable("tooltip.tacz_caliber_ammo.caliber",
                 Component.literal(String.join(", ", names)).withStyle(ChatFormatting.GOLD))
                 .withStyle(ChatFormatting.GRAY);
+    }
+
+    /**
+     * 枪的伤害修正展示行（固定伤害 + 百分比伤害，均来自 {@link CaliberManager#getGunModifier}）。
+     * 仅列出非 0 项：固定伤害显示带符号绝对值（+0.5），百分比显示带符号百分数（+5%）；正=绿(增伤)、负=红。
+     * 供枪 tooltip 在"枪种之下、移动速度之上"渲染（{@code ClientGunTooltipMixin}）。gunId==null 或无修正返回空表。
+     */
+    public static List<Component> gunDamageModifierLines(ResourceLocation gunId) {
+        List<Component> out = new ArrayList<>();
+        if (gunId == null) {
+            return out;
+        }
+        GunDamageModifier mod = CaliberManager.getGunModifier(gunId);
+        if (mod == null) {
+            return out;
+        }
+        if (mod.flatDamage() != 0f) {
+            out.add(signedFlatLine("tooltip.tacz_caliber_ammo.gun_flat_damage", mod.flatDamage()));
+        }
+        if (mod.percentDamage() != 0f) {
+            out.add(signedValueLine("tooltip.tacz_caliber_ammo.gun_percent_damage", mod.percentDamage() * 100f, false));
+        }
+        return out;
     }
 
     /**
@@ -71,7 +96,12 @@ public final class TooltipHandler {
         if (caliber == null || CaliberManager.NONE.equals(caliber)) {
             out.add(noCaliberLine());
         } else {
-            out.add(valueLine("tooltip.tacz_caliber_ammo.caliber", CaliberManager.getCaliber(caliber).name()));
+            // 万用口径用可本地化键显示（万用 / Universal）；其余口径沿用 calibers/*.json 的 name 字面量
+            Component caliberName = CaliberManager.UNIVERSAL.equals(caliber)
+                    ? Component.translatable("caliber.tacz_caliber_ammo.universal").withStyle(ChatFormatting.GOLD)
+                    : Component.literal(CaliberManager.getCaliber(caliber).name()).withStyle(ChatFormatting.GOLD);
+            out.add(Component.translatable("tooltip.tacz_caliber_ammo.caliber", caliberName)
+                    .withStyle(ChatFormatting.GRAY));
             AmmoProfile p = CaliberManager.getAmmoProfile(ammoId);
             if (p != null) {
                 out.add(valueLine("tooltip.tacz_caliber_ammo.damage", fmt(p.baseDamage())));
@@ -86,9 +116,29 @@ public final class TooltipHandler {
                 }
                 out.add(signedValueLine("tooltip.tacz_caliber_ammo.recoil", p.recoilModifier(), true));
                 out.add(signedValueLine("tooltip.tacz_caliber_ammo.accuracy", p.accuracyModifier(), false));
+                appendEffects(p.effects(), out);
             }
         }
         lines.addAll(Math.min(1, lines.size()), out);
+    }
+
+    /** 弹药特殊效果指示（命中爆炸/点燃/额外击退/自定义脚本）：每项一行金色，便于识别特种弹。 */
+    private static void appendEffects(AmmoEffects fx, List<Component> out) {
+        if (fx == null) {
+            return;
+        }
+        if (fx.explosion() != null && fx.explosion().enabled()) {
+            out.add(Component.translatable("tooltip.tacz_caliber_ammo.effect.explosion").withStyle(ChatFormatting.GOLD));
+        }
+        if (fx.ignite() != null && (fx.ignite().igniteEntity() || fx.ignite().igniteBlock())) {
+            out.add(Component.translatable("tooltip.tacz_caliber_ammo.effect.ignite").withStyle(ChatFormatting.GOLD));
+        }
+        if (fx.knockback() != null) {
+            out.add(Component.translatable("tooltip.tacz_caliber_ammo.effect.knockback").withStyle(ChatFormatting.GOLD));
+        }
+        if (fx.hasScript()) {
+            out.add(Component.translatable("tooltip.tacz_caliber_ammo.effect.script").withStyle(ChatFormatting.GOLD));
+        }
     }
 
     /** "标签：值" 一行：标签浅灰、值橙色。 */
@@ -105,6 +155,14 @@ public final class TooltipHandler {
         float goodness = higherIsWorse ? -v : v;
         ChatFormatting color = goodness > 0 ? ChatFormatting.GREEN : (goodness < 0 ? ChatFormatting.RED : ChatFormatting.WHITE);
         return Component.translatable(key, Component.literal(signedPercent(v)).withStyle(color))
+                .withStyle(ChatFormatting.GRAY);
+    }
+
+    /** 同 signedValueLine，但数值是带符号的绝对值（+0.5 / -1，无 %）；正绿负红 0 白。供枪固定伤害修正显示。 */
+    private static Component signedFlatLine(String key, float v) {
+        ChatFormatting color = v > 0 ? ChatFormatting.GREEN : (v < 0 ? ChatFormatting.RED : ChatFormatting.WHITE);
+        String txt = (v > 0 ? "+" : "") + fmt(v);
+        return Component.translatable(key, Component.literal(txt).withStyle(color))
                 .withStyle(ChatFormatting.GRAY);
     }
 

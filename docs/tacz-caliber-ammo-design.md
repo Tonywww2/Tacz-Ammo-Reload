@@ -259,6 +259,27 @@ List<Round> buildSequence(Gun gun, Pouch pouch) {
 - 复用 CaliberManager 的客户端可读索引(ammoId->caliber/profile, gunId->calibers)。
 - 口径说明行: 用 `Caliber.tooltipKey()`(由 id 生成 `caliber.<ns>.<path>.tooltip`)经 `Component.translatable` 显示; 客户端用 `I18n.exists(key)` 判断该口径是否有说明翻译, 无则不追加该行 —— 说明文本不再由 `calibers/*.json` 字符串设置(CR-3)。
 
+## 13. 弹药效果系统 (声明式 + Lua 脚本, 2026-07-16 实装)
+
+按弹种在特定时机(命中实体/方块、开火、飞行 tick、击杀)触发效果, 两条路径。
+
+### 13.1 声明式原生效果 (Phase 1)
+- 弹药 JSON 可选 `effects{}` 子块: `explosion`(enabled/damage/radius/knockback/destroyBlock/delaySeconds) / `ignite`(entity/block/entitySeconds) / `knockback`(float)。解析进 `AmmoEffects` record(挂在 `AmmoProfile.effects`; 每项省略即不覆写)。
+- `EntityKineticBulletMixin` 构造 TAIL 按 ammoId 取 profile, `@Shadow` 覆写 TacZ 子弹的爆炸/点燃/击退实例字段 —— 之后 TacZ 原生 `onBulletTick`(爆炸) / `onHitEntity`(点燃/击退) 照常应用, 零重写。
+- 受 `ModConfig.enableAmmoEffects` 总开关 + `maxExplosionRadius` 上限; ignite/explosion 另受 TacZ `AmmoConfig` 全局门控。
+- 展示: `TooltipHandler` 追加金色效果指示行。作者文档: `docs/ammo-effects.md`。
+
+### 13.2 Lua 脚本效果 (Phase 2)
+- **复用 TacZ `ScriptManager`**(`resource.manager.ScriptManager`, public 构造+getScript, 沙箱 luaj 无 io/os): 自建实例 `EffectScriptManager`(dir=`ammo_effect_scripts`), 经 `EffectScriptBootstrap` 的 `AddReloadListenerEvent` 注册, 扫 `data/<ns>/ammo_effect_scripts/*.lua`(模块=返回表)。
+- 绑定: 弹药 `effects.script = "ns:name"`(缺省 ns=本 mod)。
+- 5 钩子(ammoId 一律 `EntityKineticBullet.getAmmoId()` 精确回读, 非持有态):
+  - 事件驱动(`AmmoEffectEvents`, Forge): `EntityHurtByGunEvent.Post`->on_hit_entity、`EntityKillByGunEvent`->on_kill、`AmmoHitBlockEvent`->on_hit_block(均 `getBullet()`/`getAmmo()`)。
+  - Mixin(`EntityKineticBulletMixin`): 构造 TAIL(服务端)->on_fire、`onBulletTick`->on_bullet_tick。
+- 派发 `AmmoEffectDispatcher`: **仅当脚本定义了该钩子才派发**(on_bullet_tick 不空跑) + api 惰性构建 + **catch Throwable 兜底**(脚本任何错误只 warn, 不崩; 注意 LuaError 是 RuntimeException 子类, 不能 multi-catch)。
+- api `AmmoEffectScriptAPI`(服务端): 上下文 getter + 效果助手 ignite/addEffect/explode/strikeLightning/knockback/pull/damageTarget/healShooter/particle/sound/log。
+- build: luaj 加 `compileOnly`(运行期已由 TacZ JiJ 提供)。作者文档: `docs/ammo-effect-scripting.md`。
+- 运行期已核实(临时 self-check, 已删): 服务器起来后 5 个内置脚本 getScript 全 loaded=true 且含预期钩子函数; 无加载/派发报错。gameplay 级(命中真触发)留手动 runClient。
+
 ## Revision Log
 
 - 2026-07-14 — 初稿(Stage 1)。基于 javap 核实 TacZ 8141310 的弹药/伤害模型; 5 项高杠杆决策(弹道所有权反转 / 接受 Mixin / 全量迁移 / JSON 数据包 / 自动派生兼容)已与用户确认。
@@ -271,3 +292,4 @@ List<Round> buildSequence(Gun gun, Pouch pouch) {
 - 2026-07-15 — 新增 §12 信息显示: 弹药 tooltip 显示口径+伤害, 枪显示口径; 优先用 Forge `ItemTooltipEvent` 追加行(无需 Mixin)。
 - 2026-07-15 — (CR-3) 口径说明(tooltip)不再写 `calibers/*.json` 字符串, 改由口径 id 自动生成本地化键 `caliber.<ns>.<path>.tooltip`(`Caliber.tooltipKey()`); `Caliber` record 去掉 `tooltip` 字段 → `record Caliber(id, name)`。
 - 2026-07-15 — 缺口决策: FeedType(MAGAZINE 逐发 / FUEL·INVENTORY 单弹种 / 无限用首发); 上嬜弹=序列头; 暂移除距离曲线(标量伤害); armorIgnore 与配件沿用 TacZ(配件最后结算); 原版弹药改"tooltip 标记"不禁用; 口径命名规范; 枪->口径后续手动编译。
+- 2026-07-16 — 新增第 13 节 弹药效果系统(声明式 explosion/ignite/knockback + Lua 脚本 5 钩子, 复用 TacZ ScriptManager)。全量 build 绿; 运行期自检确认 5 内置脚本加载与钩子存在。作者文档 ammo-effects.md / ammo-effect-scripting.md。

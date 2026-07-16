@@ -3,7 +3,7 @@
   "armorIgnore": 0.7,
   "baseDamage": 6.0,
   "caliber": "5_56x45",
-  "display": "tacz:556x45_display",
+  "display": "tacz_caliber_ammo:5_56x45_m995_display",
   "headShotMultiplier": 1.55,
   "name": "ammo.tacz_caliber_ammo.5_56x45.m995",
   "pelletCount": 1,

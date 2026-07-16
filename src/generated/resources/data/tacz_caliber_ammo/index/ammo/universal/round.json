@@ -1,0 +1,15 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.3,
+  "baseDamage": 7.0,
+  "caliber": "universal",
+  "display": "tacz_caliber_ammo:universal_display",
+  "headShotMultiplier": 1.5,
+  "name": "ammo.tacz_caliber_ammo.universal.round",
+  "pelletCount": 0,
+  "pierce": 1,
+  "recoil": 0,
+  "sort": 217,
+  "speed": 0,
+  "stack_size": 60
+}

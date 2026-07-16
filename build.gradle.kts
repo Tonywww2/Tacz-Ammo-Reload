@@ -92,6 +92,11 @@ dependencies {
         "forgeRuntimeLibrary"(rootProject.files("libs/bcel-6.6.1.jar"))
         "forgeRuntimeLibrary"(rootProject.files("libs/commons-math3-3.6.1.jar"))
 
+        // luaj 编译期可见（运行期已由 TacZ JiJ + 上面的 forgeRuntimeLibrary 提供，不打包）——
+        // 为在 Java 里引用 org.luaj.vm2.* 以及 TacZ ScriptManager.getScript 返回的 LuaTable（弹药效果 Lua 脚本系统）。
+        "compileOnly"(rootProject.files("libs/luaj-core-3.0.8-figura.jar"))
+        "compileOnly"(rootProject.files("libs/luaj-jse-3.0.8-figura.jar"))
+
         // simplebedrockmodel 是 mod（TacZ 枪械客户端渲染依赖），需 Loom 重映射并按 mod 加载；
         // 它内嵌的 mae 是纯动画数学库（同样从 JiJ 抽到 libs/ 补齐）。
         "modRuntimeOnly"(rootProject.files("libs/simplebedrockmodel-2.2.2-forge+mc1.20.1.jar"))

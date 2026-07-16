@@ -34,8 +34,20 @@ public final class CaliberManager {
     /** 默认口径：未在弹药 JSON 配置 caliber 的弹药（含 TacZ 原版）归入此口径。 */
     public static final ResourceLocation NONE = TaczCaliberAmmo.prefix("none");
 
+    /**
+     * 特殊口径 万用（universal）: 配置为此口径的弹药可装入任意枪械（isAmmoOfGun 恒真）。
+     * 纯弹药侧属性: 不写入任何枪的口径集、不在枪 tooltip 显示（getGunCalibers 不产出该口径、
+     * TooltipHandler.gunCaliberLine 过滤之）, 仅在被配置为该口径的弹药 tooltip 上显示。
+     */
+    public static final ResourceLocation UNIVERSAL = TaczCaliberAmmo.prefix("universal");
+
     /** ammoId -> 弹道档（仅记录带 caliber 字段的弹药）。 */
     private static final Map<ResourceLocation, AmmoProfile> AMMO = new ConcurrentHashMap<>();
+    /**
+     * 原生 TacZ 弹药 id -> 极低弹道档：baseDamage = 同口径内容弹药（{@link #AMMO}）的最低 baseDamage，
+     * 其余属性全 0；由 {@link #rebuildNativeProfiles} 在 AMMO 重建后派生（本体子弹默认走此弱档，除非另有内容档）。
+     */
+    private static final Map<ResourceLocation, AmmoProfile> NATIVE_PROFILE = new ConcurrentHashMap<>();
     /** gunId -> 伤害修正（仅记录带 calibers/flatDamage/percentDamage 字段的枪）。 */
     private static final Map<ResourceLocation, GunDamageModifier> GUN = new ConcurrentHashMap<>();
     /** caliberId -> 口径定义（name/tooltip，来自 data/&lt;ns&gt;/calibers/*.json，由 CaliberDataBootstrap 灌入）。 */
@@ -44,7 +56,13 @@ public final class CaliberManager {
     /** Tier 1：gunId -> 口径集，来自 modify_gun_caliber 独立数据包（GunCaliberModifyBootstrap 灌入）。 */
     private static final Map<ResourceLocation, Set<ResourceLocation>> MODIFY = new ConcurrentHashMap<>();
 
-    /** Tier 3 内置表：原生 TacZ 弹药 id -> 口径 id（源自 docs/calibers.md 原TacZ弹药列, 19 条）。 */
+    /**
+     * gunId -> 枪伤害修正（flatDamage/percentDamage），来自 modify_gun_caliber 独立数据包的<b>对象形式</b>条目。
+     * 独立注入, 不覆写 TacZ 枪 index; 由 {@link #getGunModifier} 优先于 {@link #GUN}（枪 index 字段）读取。
+     */
+    private static final Map<ResourceLocation, GunDamageModifier> MODIFY_DMG = new ConcurrentHashMap<>();
+
+    /** Tier 3 内置表：原生 TacZ 弹药 id -> 口径 id（源自 docs/calibers.md 原TacZ弹药列, 24 条）。 */
     private static final Map<ResourceLocation, ResourceLocation> NATIVE_MAP = buildNativeMap();
 
     private static Map<ResourceLocation, ResourceLocation> buildNativeMap() {
@@ -68,6 +86,12 @@ public final class CaliberManager {
         putNative(m, "12g", "12_70");
         putNative(m, "40mm", "40x46");
         putNative(m, "rpg_rocket", "72_5");
+        // 补齐 TacZ 本体另 5 种弹药（对应口径本项目均已定义并生成内容弹）
+        putNative(m, "46x30", "4_6x30");
+        putNative(m, "545x39", "5_45x39");
+        putNative(m, "68x51fury", "6_8x51");
+        putNative(m, "762x25", "7_62x25");
+        putNative(m, "762x54", "7_62x54r");
         // 本体新增口径(无原生 TacZ 弹药)的基准弹 -> 指向本 mod 自造弹药, 作 getAmmosForCaliber 的代码级兜底基准
         m.put(TaczCaliberAmmo.prefix("12_7x108/b_32"), TaczCaliberAmmo.prefix("12_7x108"));
         m.put(TaczCaliberAmmo.prefix("30x29/vog_30"), TaczCaliberAmmo.prefix("30x29"));
@@ -106,9 +130,9 @@ public final class CaliberManager {
                 .map(idx -> idx.getGunData().getAmmoId())
                 .orElse(null);
         if (ammoId != null) {
-            // Tier 3: 原生子弹转口径（内容弹药 caliber 或 NATIVE_MAP）
+            // Tier 3: 原生子弹转口径（内容弹药 caliber 或 NATIVE_MAP）；万用口径为纯弹药侧, 不作枪口径
             ResourceLocation c3 = getAmmoCaliber(ammoId);
-            if (!NONE.equals(c3)) {
+            if (!NONE.equals(c3) && !UNIVERSAL.equals(c3)) {
                 return Collections.singleton(c3);
             }
             // Tier 4: 模糊匹配（配置可关）
@@ -136,14 +160,19 @@ public final class CaliberManager {
         return (nativeCaliber != null) ? nativeCaliber : NONE;
     }
 
-    /** 弹药弹道档；未配置返回 null（调用方回退到由枪 bulletData 派生）。 */
+    /** 弹药弹道档；内容弹药优先（{@link #AMMO}），其次原生 TacZ 弹药的极低档（{@link #NATIVE_PROFILE}）；均无返回 null（调用方回退到由枪 bulletData 派生）。 */
     public static AmmoProfile getAmmoProfile(ResourceLocation ammoId) {
-        return AMMO.get(ammoId);
+        AmmoProfile p = AMMO.get(ammoId);
+        return (p != null) ? p : NATIVE_PROFILE.get(ammoId);
     }
 
-    /** 枪伤害修正；未配置返回 null（调用方回退 flat0/percent0）。 */
+    /**
+     * 枪伤害修正；优先 {@code modify_gun_caliber} 独立数据包的对象形式条目（{@link #MODIFY_DMG}），
+     * 其次枪 index 的 {@code flatDamage/percentDamage} 字段（{@link #GUN}）；均无返回 null（调用方回退 flat0/percent0）。
+     */
     public static GunDamageModifier getGunModifier(ResourceLocation gunId) {
-        return GUN.get(gunId);
+        GunDamageModifier md = MODIFY_DMG.get(gunId);
+        return (md != null) ? md : GUN.get(gunId);
     }
 
     /** 口径定义（name + 由 id 派生的 tooltip 键）；未定义时回退为 id 自身（name=路径）。 */
@@ -182,7 +211,41 @@ public final class CaliberManager {
                 AMMO.put(e.getKey(), p);
             }
         }
+        rebuildNativeProfiles();
         LOGGER.info("[tacz_caliber_ammo] loaded {} ammo profile(s) with caliber (of {} ammo)", AMMO.size(), data.size());
+    }
+
+    /**
+     * 为原生 TacZ 弹药（{@link #NATIVE_MAP} 中的 {@code tacz:*} 条目）派生"极低"弹道档：
+     * baseDamage = 同口径内容弹药（{@link #AMMO}）的最低 baseDamage，headShotMultiplier = 1.2（爆头 120%），
+     * 其余属性全 0（armorIgnore/pierce/recoil/accuracy/speed/pelletCount 均 0，effects 空）。
+     * 已在 AMMO 中的 id（如本 mod 自造基准弹）不覆盖；某口径无内容弹药可参照则跳过（保留 TacZ 派生伤害）。
+     * 依赖 AMMO 已重建，故在 {@link #rebuildAmmo} 末尾调用。
+     */
+    private static void rebuildNativeProfiles() {
+        NATIVE_PROFILE.clear();
+        Map<ResourceLocation, Float> minByCaliber = new HashMap<>();
+        for (AmmoProfile p : AMMO.values()) {
+            ResourceLocation cal = p.caliber();
+            Float cur = minByCaliber.get(cal);
+            if (cur == null || p.baseDamage() < cur) {
+                minByCaliber.put(cal, p.baseDamage());
+            }
+        }
+        for (Map.Entry<ResourceLocation, ResourceLocation> e : NATIVE_MAP.entrySet()) {
+            ResourceLocation ammoId = e.getKey();
+            if (AMMO.containsKey(ammoId)) {
+                continue; // 已有内容弹药档（本 mod 自造基准弹）不覆盖
+            }
+            Float min = minByCaliber.get(e.getValue());
+            if (min == null) {
+                continue; // 该口径无内容弹药可参照 -> 保留 TacZ 派生伤害
+            }
+            // 本体子弹：同口径最低伤害；爆头 120%（headShotMultiplier=1.2f）；其余属性全 0
+            NATIVE_PROFILE.put(ammoId, new AmmoProfile(e.getValue(), min,
+                    0f, 1.2f, 0, 0f, 0f, 0f, 0, AmmoEffects.EMPTY));
+        }
+        LOGGER.info("[tacz_caliber_ammo] built {} native-ammo low profile(s) (同口径最低伤害 + 爆头120% + 其余全 0)", NATIVE_PROFILE.size());
     }
 
     public static void rebuildGun(Map<ResourceLocation, JsonElement> data) {
@@ -213,11 +276,18 @@ public final class CaliberManager {
 
     /**
      * Tier 1 {@code modify_gun_caliber} 数据加载：由 {@link GunCaliberModifyBootstrap} 的 reload 监听调用。
-     * 每文件 {@code { "priority": int(默认0), "guns": { gunId: [caliberId,...] 或 caliberId } }}；
+     * 每文件 {@code { "priority": int(默认0), "guns": { gunId: 值 } }}，其中每个 gun 的值可为：
+     * <ul>
+     *   <li>字符串 / 数组：仅覆盖口径（注入 {@link #MODIFY}，供 getGunCalibers Tier 1）；</li>
+     *   <li>对象 {@code { "calibers": [...]?, "flatDamage": float?, "percentDamage": float? }}：
+     *       calibers 可选（注入 {@link #MODIFY}）；flatDamage/percentDamage 可选（注入 {@link #MODIFY_DMG}，
+     *       供 {@link #getGunModifier}）——即可不改口径而单独给某枪配伤害修正。</li>
+     * </ul>
      * 跨文件同一 gun 取 priority 最高者，平级则后加载者覆盖（并 warn）。
      */
     public static void rebuildModify(Map<ResourceLocation, JsonElement> data) {
         MODIFY.clear();
+        MODIFY_DMG.clear();
         Map<ResourceLocation, Integer> wonPriority = new HashMap<>();
         for (Map.Entry<ResourceLocation, JsonElement> e : data.entrySet()) {
             JsonElement el = e.getValue();
@@ -240,6 +310,8 @@ public final class CaliberManager {
                             gunId, priority);
                 }
                 Set<ResourceLocation> calibers = new HashSet<>();
+                Float flat = null;
+                Float percent = null;
                 JsonElement cv = g.getValue();
                 if (cv.isJsonArray()) {
                     for (JsonElement c : cv.getAsJsonArray()) {
@@ -247,14 +319,38 @@ public final class CaliberManager {
                     }
                 } else if (cv.isJsonPrimitive()) {
                     calibers.add(toCaliberId(cv.getAsString()));
+                } else if (cv.isJsonObject()) {
+                    JsonObject go = cv.getAsJsonObject();
+                    JsonElement ce = go.get("calibers");
+                    if (ce != null && ce.isJsonArray()) {
+                        for (JsonElement c : ce.getAsJsonArray()) {
+                            calibers.add(toCaliberId(c.getAsString()));
+                        }
+                    } else if (ce != null && ce.isJsonPrimitive()) {
+                        calibers.add(toCaliberId(ce.getAsString()));
+                    }
+                    if (go.has("flatDamage")) {
+                        flat = go.get("flatDamage").getAsFloat();
+                    }
+                    if (go.has("percentDamage")) {
+                        percent = go.get("percentDamage").getAsFloat();
+                    }
                 }
-                if (!calibers.isEmpty()) {
-                    MODIFY.put(gunId, Collections.unmodifiableSet(calibers));
+                boolean hasDmg = flat != null || percent != null;
+                if (!calibers.isEmpty() || hasDmg) {
+                    if (!calibers.isEmpty()) {
+                        MODIFY.put(gunId, Collections.unmodifiableSet(calibers));
+                    }
+                    if (hasDmg) {
+                        MODIFY_DMG.put(gunId, new GunDamageModifier(Collections.emptySet(),
+                                flat == null ? 0f : flat, percent == null ? 0f : percent));
+                    }
                     wonPriority.put(gunId, priority);
                 }
             }
         }
-        LOGGER.info("[tacz_caliber_ammo] loaded modify_gun_caliber for {} gun(s)", MODIFY.size());
+        LOGGER.info("[tacz_caliber_ammo] loaded modify_gun_caliber for {} gun(s), {} with damage modifier",
+                MODIFY.size(), MODIFY_DMG.size());
     }
 
     /**
@@ -298,8 +394,42 @@ public final class CaliberManager {
         float accuracyModifier = getFloat(o, "accuracy", 0f);  // 精度%（带符号，可 >100）
         float speed = getFloat(o, "speed", 0f);                // 初速原始值 m/s（0 = 不覆写）
         int pelletCount = o.has("pelletCount") ? o.get("pelletCount").getAsInt() : 0; // 弹丸数（0 = 不覆写）
+        AmmoEffects effects = parseEffects(o.has("effects") && o.get("effects").isJsonObject()
+                ? o.getAsJsonObject("effects") : null);
         return new AmmoProfile(caliber, baseDamage, armorIgnore, headShot, pierce,
-                recoilModifier, accuracyModifier, speed, pelletCount);
+                recoilModifier, accuracyModifier, speed, pelletCount, effects);
+    }
+
+    /** 解析弹药 JSON 的可选 {@code effects{}} 子块 -&gt; {@link AmmoEffects}；无则 {@link AmmoEffects#EMPTY}。 */
+    private static AmmoEffects parseEffects(JsonObject e) {
+        if (e == null) {
+            return AmmoEffects.EMPTY;
+        }
+        AmmoEffects.ExplosionSpec explosion = null;
+        if (e.has("explosion") && e.get("explosion").isJsonObject()) {
+            JsonObject ex = e.getAsJsonObject("explosion");
+            boolean enabled = !ex.has("enabled") || ex.get("enabled").getAsBoolean();
+            explosion = new AmmoEffects.ExplosionSpec(enabled,
+                    getFloat(ex, "damage", 3.0f), getFloat(ex, "radius", 3.0f),
+                    ex.has("knockback") && ex.get("knockback").getAsBoolean(),
+                    ex.has("destroyBlock") && ex.get("destroyBlock").getAsBoolean(),
+                    getFloat(ex, "delaySeconds", 0f));
+        }
+        AmmoEffects.IgniteSpec ignite = null;
+        if (e.has("ignite") && e.get("ignite").isJsonObject()) {
+            JsonObject ig = e.getAsJsonObject("ignite");
+            ignite = new AmmoEffects.IgniteSpec(
+                    ig.has("entity") && ig.get("entity").getAsBoolean(),
+                    ig.has("block") && ig.get("block").getAsBoolean(),
+                    ig.has("entitySeconds") ? ig.get("entitySeconds").getAsInt() : 5);
+        }
+        Float knockback = e.has("knockback") ? e.get("knockback").getAsFloat() : null;
+        ResourceLocation script = null;
+        if (e.has("script")) {
+            String s = e.get("script").getAsString();
+            script = ResourceLocation.tryParse(s.indexOf(':') >= 0 ? s : "tacz_caliber_ammo:" + s);
+        }
+        return new AmmoEffects(explosion, ignite, knockback, script);
     }
 
     private static GunDamageModifier parseGun(JsonElement el) {

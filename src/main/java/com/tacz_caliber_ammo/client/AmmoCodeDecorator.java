@@ -20,6 +20,7 @@ import net.minecraftforge.registries.ForgeRegistries;
  * 在子弹物品图标顶边用文字渲染其"代号缩写"——由弹药 id 映射到本地化缩写键
  * {@code ammo.<命名空间>.<路径(/换为.)>.abbr} 取得（下划线渲染为空格；无该键则不渲染）。
  * 例 {@code tacz_caliber_ammo:5_56x45/m855} -> 键 {@code ammo.tacz_caliber_ammo.5_56x45.m855.abbr} -> {@code M855}。
+ * 另可用并列开关键 {@code <abbr 键>.off}=true（true/1/yes/on）在保留 abbr 的同时关闭特定弹药的代号渲染。
  *
  * <p>机制：Forge {@link IItemDecorator} + {@link RegisterItemDecorationsEvent}（MOD 总线，仅客户端）。
  * 遵循 §2 自注册约定（@Mod.EventBusSubscriber 自动发现，主类 {@code TaczCaliberAmmo} 不改）。
@@ -80,6 +81,9 @@ public final class AmmoCodeDecorator implements IItemDecorator {
      * 取弹药代号缩写：读该弹药 id 对应的本地化缩写键
      * {@code ammo.<命名空间>.<路径(/换为.)>.abbr}，并把其中的下划线替换为空格。
      * 无该键（即未配置代号的弹药）则返回 null —— 不渲染。
+     *
+     * <p>关闭开关：若并列键 {@code <abbr 键>.off} 存在且为真（true/1/yes/on），
+     * 则即使配了 abbr 也不渲染 —— 用于在保留 abbr 定义的同时关闭特定弹药的代号渲染。
      */
     private static String codeOf(ItemStack stack) {
         if (!(stack.getItem() instanceof IAmmo ammo)) {
@@ -93,7 +97,19 @@ public final class AmmoCodeDecorator implements IItemDecorator {
         if (!I18n.exists(key)) {
             return null;
         }
+        // 关闭开关：并列键 <abbr 键>.off 为真时，保留 abbr 但不渲染该弹药的代号。
+        String offKey = key + ".off";
+        if (I18n.exists(offKey) && isTrue(I18n.get(offKey))) {
+            return null;
+        }
         String abbr = I18n.get(key).replace('_', ' ').trim();
         return abbr.isEmpty() ? null : abbr;
+    }
+
+    /** 关闭开关取值：忽略大小写的 true/1/yes/on 视为“关闭渲染”。 */
+    private static boolean isTrue(String value) {
+        String v = value.trim();
+        return v.equalsIgnoreCase("true") || v.equals("1")
+                || v.equalsIgnoreCase("yes") || v.equalsIgnoreCase("on");
     }
 }
