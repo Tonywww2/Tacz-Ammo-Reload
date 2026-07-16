@@ -211,17 +211,34 @@ public class ModernKineticGunScriptAPIMixin {
                     target = "Lcom/tacz/guns/resource/pojo/data/gun/GunData;getAmmoId()Lnet/minecraft/resources/ResourceLocation;"))
     private ResourceLocation tacz_caliber_ammo$dequeue(GunData gunData) {
         ResourceLocation id;
-        if (tacz_caliber_ammo$isManualAction()) {
-            // 泵动/栓动(MANUAL_ACTION): 发射的是膛内弹, 用膛内弹弹种; 膛内无记录则回退弹匣队首
-            id = LoadedAmmoSequence.takeBarrelAmmo(this.itemStack);
-            if (id == null) {
+        Bolt bolt = tacz_caliber_ammo$bolt();
+        if (bolt == Bolt.CLOSED_BOLT) {
+            // 闭膛弹匣枪(稳态膛内恒有弹): 先击发膛内那发, 再从弹匣顶补一发进膛(轮换), 膛内始终有弹。
+            // 镜像 TacZ 稳态 reduceAmmoOnce: 弹匣有弹则 reduceCurrentAmmoCount(弹匣-1)+膛内标记保持;
+            // 弹匣空则 setBulletInBarrel(false)。故这里: 有膛内弹时 popNextRound(对应弹匣-1)补膛; 弹匣空则清膛。
+            id = LoadedAmmoSequence.peekBarrelAmmo(this.itemStack);
+            if (id != null) {
+                ResourceLocation refill = LoadedAmmoSequence.popNextRound(this.itemStack);
+                if (refill != null) {
+                    LoadedAmmoSequence.setBarrelAmmo(this.itemStack, refill); // 弹匣顶补进膛
+                } else {
+                    LoadedAmmoSequence.takeBarrelAmmo(this.itemStack); // 弹匣空: 打掉最后的膛内弹, 清膛
+                }
+            } else {
+                // 膛内空(边界/desync): 退化打弹匣队首
                 id = LoadedAmmoSequence.popNextRound(this.itemStack);
             }
-        } else {
-            // 自动/半自动: 优先弹匣队首, 弹匣空则打膛内弹
+        } else if (bolt == Bolt.OPEN_BOLT) {
+            // 开膛待击无常驻膛内弹: 弹匣队首优先, 兜底膛内
             id = LoadedAmmoSequence.popNextRound(this.itemStack);
             if (id == null) {
                 id = LoadedAmmoSequence.takeBarrelAmmo(this.itemStack);
+            }
+        } else {
+            // MANUAL_ACTION(栓/泵动): 击发膛内那发, 不在此补膛(下次上膛 setAmmoInBarrel->onSetBarrel 从弹匣补)
+            id = LoadedAmmoSequence.takeBarrelAmmo(this.itemStack);
+            if (id == null) {
+                id = LoadedAmmoSequence.popNextRound(this.itemStack);
             }
         }
         if (id == null) {
@@ -231,10 +248,10 @@ public class ModernKineticGunScriptAPIMixin {
         return id;
     }
 
-    /** 该枪是否 MANUAL_ACTION（泵动/栓动，发射消耗的是膛内弹而非弹匣）。 */
+    /** 该枪的枪机类型（gunIndex 缺失时返回 null）。 */
     @Unique
-    private boolean tacz_caliber_ammo$isManualAction() {
-        return this.gunIndex != null && this.gunIndex.getGunData().getBolt() == Bolt.MANUAL_ACTION;
+    private Bolt tacz_caliber_ammo$bolt() {
+        return this.gunIndex != null ? this.gunIndex.getGunData().getBolt() : null;
     }
 
     /**
@@ -321,16 +338,16 @@ public class ModernKineticGunScriptAPIMixin {
     }
 
     /**
-     * 下一发要发射的弹种（不消费）：MANUAL_ACTION 看膛内弹优先，其余看弹匣队首优先；
+     * 下一发要发射的弹种（不消费）：OPEN_BOLT 看弹匣队首优先，其余(闭膛/栓动)看膛内弹优先；
      * 与 {@link #tacz_caliber_ammo$dequeue} 的取用顺序保持一致，供弹丸数预读。
      */
     @Unique
     private ResourceLocation tacz_caliber_ammo$peekNext() {
-        if (tacz_caliber_ammo$isManualAction()) {
-            ResourceLocation b = LoadedAmmoSequence.peekBarrelAmmo(this.itemStack);
-            return b != null ? b : LoadedAmmoSequence.peekHead(this.itemStack);
+        if (tacz_caliber_ammo$bolt() == Bolt.OPEN_BOLT) {
+            ResourceLocation h = LoadedAmmoSequence.peekHead(this.itemStack);
+            return h != null ? h : LoadedAmmoSequence.peekBarrelAmmo(this.itemStack);
         }
-        ResourceLocation h = LoadedAmmoSequence.peekHead(this.itemStack);
-        return h != null ? h : LoadedAmmoSequence.peekBarrelAmmo(this.itemStack);
+        ResourceLocation b = LoadedAmmoSequence.peekBarrelAmmo(this.itemStack);
+        return b != null ? b : LoadedAmmoSequence.peekHead(this.itemStack);
     }
 }

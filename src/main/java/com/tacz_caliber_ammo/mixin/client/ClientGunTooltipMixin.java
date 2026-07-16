@@ -117,20 +117,30 @@ public class ClientGunTooltipMixin {
             // 口径表格(上, 列１标签+列２/列３每行两口径) + 两列表格(A=容量, B=装填)。标签浅灰; 口径/容量上限/abbr=橙; 容量当前/数量=白。
             List<Component> bullets = this.taczCaliberAmmo$loadedAmmoLines();
             yOffset = this.taczCaliberAmmo$renderCaliberTable(font, pX, yOffset, matrix4f, bufferSource);
+            // 容量/装填 列名
             int colBx = pX + this.taczCaliberAmmo$colAWidth(font) + TACZ_CALIBER_AMMO$COLUMN_GAP;
             font.drawInBatch(Component.translatable(TACZ_CALIBER_AMMO$COL_A_KEY), (float) pX, (float) yOffset,
                     TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             font.drawInBatch(Component.translatable(TACZ_CALIBER_AMMO$COL_B_KEY), (float) colBx, (float) yOffset,
                     TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+            yOffset += 10;
+            // 膛内子弹(若有): 作为弹匣区一部分, 置于"容量/装填"列名与弹量明细之间, 独占一行, 格式"膛内 1x 型号"(型号黄)
+            Component barrel = this.taczCaliberAmmo$barrelLine();
+            if (barrel != null) {
+                font.drawInBatch(barrel, (float) pX, (float) yOffset, TACZ_CALIBER_AMMO$LABEL, false, matrix4f,
+                        bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
+                yOffset += 10;
+            }
+            // A 列容量当前/上限 + B 列弹匣逐发明细
             if (this.ammoCountText != null) {
-                font.drawInBatch(this.taczCaliberAmmo$capacityText(), (float) pX, (float) (yOffset + 10),
+                font.drawInBatch(this.taczCaliberAmmo$capacityText(), (float) pX, (float) yOffset,
                         TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             }
             for (int i = 0; i < bullets.size(); i++) {
-                font.drawInBatch(bullets.get(i), (float) colBx, (float) (yOffset + 10 + i * 10),
+                font.drawInBatch(bullets.get(i), (float) colBx, (float) (yOffset + i * 10),
                         TACZ_CALIBER_AMMO$LABEL, false, matrix4f, bufferSource, Font.DisplayMode.NORMAL, 0, 0xF000F0);
             }
-            yOffset += (1 + Math.max(1, bullets.size())) * 10;
+            yOffset += Math.max(1, bullets.size()) * 10;
         }
         if (this.shouldShow(GunTooltipPart.BASE_INFO)) {
             // 经验等级/damage 已移除; 仅保留 gunType(类型): 标签"类型："浅灰(param), 类型名保留原样式(青)
@@ -180,6 +190,9 @@ public class ClientGunTooltipMixin {
         if (this.shouldShow(GunTooltipPart.AMMO_INFO)) {
             int rows = 1 + Math.max(1, this.taczCaliberAmmo$loadedAmmoLines().size());
             rows += this.taczCaliberAmmo$caliberRows();
+            if (this.taczCaliberAmmo$barrelLine() != null) {
+                rows += 1;
+            }
             h += rows * 10 - 24;
         }
         // 枪伤害修正行(枪种之下, 移动速度之上): 每行 10 + 块首 4 间距
@@ -214,6 +227,10 @@ public class ClientGunTooltipMixin {
         int tableWidth = this.taczCaliberAmmo$colAWidth(font) + TACZ_CALIBER_AMMO$COLUMN_GAP + colB;
         this.maxWidth = Math.max(this.maxWidth, tableWidth);
         this.taczCaliberAmmo$widenForCaliberTable(font);
+        Component barrel = this.taczCaliberAmmo$barrelLine();
+        if (barrel != null) {
+            this.maxWidth = Math.max(this.maxWidth, font.width(barrel));
+        }
     }
 
     /** A 列(容量)宽度 = max(列名, 当前/上限弹量文字)。 */
@@ -324,6 +341,24 @@ public class ClientGunTooltipMixin {
             return TooltipHandler.gunDamageModifierLines(ig.getGunId(this.gun));
         }
         return List.of();
+    }
+
+    /** 膛内子弹行(枪膛内有弹且记录了弹种时): "膛内 1x <abbr>"; 否则 null。置于口径表格与容量/装填表格之间。 */
+    @Unique
+    private Component taczCaliberAmmo$barrelLine() {
+        if (this.gun == null || !(this.gun.getItem() instanceof IGun ig)) {
+            return null;
+        }
+        if (!ig.hasBulletInBarrel(this.gun)) {
+            return null;
+        }
+        ResourceLocation barrelAmmo = LoadedAmmoSequence.peekBarrelAmmo(this.gun);
+        if (barrelAmmo == null) {
+            return null;
+        }
+        return Component.translatable("tooltip.tacz_caliber_ammo.barrel")
+                .append(Component.literal(" 1x ").withStyle(ChatFormatting.WHITE))
+                .append(Component.literal(taczCaliberAmmo$abbrOf(barrelAmmo)).withStyle(ChatFormatting.YELLOW));
     }
 
     /** 弹匣内弹药行: 数量(白) + abbr(橙), 按装填顺序, 最多 5 行; 超 5 补 "..."(白); 空弹匣 -> 空表。 */

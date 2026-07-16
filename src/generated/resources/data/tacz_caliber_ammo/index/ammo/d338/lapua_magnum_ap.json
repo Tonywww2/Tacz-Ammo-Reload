@@ -4,7 +4,7 @@
   "ballisticCoefficient": 0.477,
   "baseDamage": 16.0,
   "caliber": "d338",
-  "display": "tacz:338_display",
+  "display": "tacz_caliber_ammo:d338_lapua_magnum_ap_display",
   "headShotMultiplier": 1.4,
   "name": "ammo.tacz_caliber_ammo.d338.lapua_magnum_ap",
   "pelletCount": 1,
