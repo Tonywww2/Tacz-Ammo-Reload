@@ -4,21 +4,33 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import com.tacz.guns.api.TimelessAPI;
+import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.gun.AbstractGunItem;
 import com.tacz.guns.entity.shooter.ShooterDataHolder;
+import com.tacz.guns.resource.index.CommonGunIndex;
+import com.tacz.guns.util.AttachmentDataUtils;
+import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.duck.ISpeedDecayBullet;
+import com.tacz_caliber_ammo.reload.PouchReloadSource;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * 取消 TacZ 自带的 {@code dropAllAmmo}（仅在配件变更 {@code ClientMessageRefitGun}/{@code ClientMessageUnloadAttachment}
- * 里被调用）。它有三个缺陷：<b>只退弹仓、无视膛内那一发、且退回的是枪的默认弹种（丢失玩家实际装填的混装弹种）</b>；
- * 创造模式还会把弹仓补满而非清空。改由 {@code reload.AttachmentAmmoHandler}（网络包 hook）用我方 LoadedSeq 的
- * 真实弹种，退还「弹仓 + 膛内」全部弹药并强制清空弹匣。CR-1: {@code dropAllAmmo} 为 TacZ 自有方法, {@code remap=false}。
+ * Patches on TacZ AbstractGunItem (TacZ-owned methods, remap=false):
+ * <ul>
+ * <li>dropAllAmmo: cancelled. It only drops the magazine, ignores the chambered round, and returns
+ * the gun default ammo type (losing mixed loaded types); in creative it refills instead of emptying.
+ * Replaced by reload.AttachmentAmmoHandler (network-packet hook) using our LoadedSeq real types.</li>
+ * <li>canReload: patched so ammo held in an Ammo Pouch counts as available ammo.</li>
+ * <li>doBulletSpread: sets flight friction (speed decay) for this mod's ammo before spawn.</li>
+ * </ul>
  */
 @Mixin(AbstractGunItem.class)
 public class AbstractGunItemMixin {
@@ -29,9 +41,71 @@ public class AbstractGunItemMixin {
     }
 
     /**
-     * 在子弹散布（初速度已设）之后、spawn 之前，对本 mod 弹药按弹道系数设置飞行 friction（速度衰减，见 {@link ISpeedDecayBullet}）。
-     * 放在此处而非 {@code EntityKineticBullet.shoot()}：TacZ 经 MC {@code Projectile.shootFromRotation}(m_37251_) 发射、
-     * 不走 EKB 自定义 shoot 重载，且该 MC 方法为继承方法无法直接注入 EKB。此处在 spawn 前设定，friction 可随 spawn 数据同步到客户端。
+     * Ammo gate patch: TacZ canReload only counts loose inventory ammo / ammo boxes, so when all ammo
+     * is inside an Ammo Pouch it reports "cannot reload" and LocalPlayerReload rejects the reload,
+     * meaning consumeAmmoFromPlayer never runs. When canReload returned false AND the magazine is not
+     * full AND the gun is not INVENTORY/dummy fed AND a hotbar pouch holds matching ammo, force true.
+     */
+    @Inject(method = "canReload", at = @At("RETURN"), cancellable = true, remap = false)
+    private void tacz_caliber_ammo$pouchCanReload(LivingEntity shooter, ItemStack gunItem,
+            CallbackInfoReturnable<Boolean> cir) {
+        if (cir.getReturnValueZ()) {
+            return;
+        }
+        if (!(shooter instanceof Player player) || !(gunItem.getItem() instanceof IGun gun)) {
+            return;
+        }
+        AbstractGunItem self = (AbstractGunItem) (Object) this;
+        if (self.useInventoryAmmo(gunItem) || self.useDummyAmmo(gunItem)) {
+            return;
+        }
+        ResourceLocation gunId = gun.getGunId(gunItem);
+        CommonGunIndex idx = TimelessAPI.getCommonGunIndex(gunId).orElse(null);
+        if (idx == null) {
+            return;
+        }
+        if (self.getCurrentAmmoCount(gunItem) >= AttachmentDataUtils.getAmmoCountWithAttachment(gunItem,
+                idx.getGunData())) {
+            return;
+        }
+        if (PouchReloadSource.hasUsableAmmo(player, CaliberManager.getGunCalibers(gunId))) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    /**
+     * Ammo gate patch for INVENTORY-fed guns (e.g. M134 minigun). hasInventoryAmmo only counts loose
+     * inventory ammo / ammo boxes, so when all matching ammo sits inside an Ammo Pouch it reports
+     * "no ammo" and LivingEntityShoot / reduceAmmoOnce refuse to fire (consumeAmmoFromPlayer, where the
+     * pouch actually supplies, then never runs). Only INVENTORY-fed guns consult hasInventoryAmmo for
+     * their shoot gate (magazine guns use ammoCount), so this is scoped to useInventoryAmmo &amp;&amp; !dummy;
+     * a hotbar pouch holding matching-caliber ammo forces true. Runs on both sides (client predict + server).
+     */
+    @Inject(method = "hasInventoryAmmo", at = @At("RETURN"), cancellable = true, remap = false)
+    private void tacz_caliber_ammo$pouchHasInventoryAmmo(LivingEntity shooter, ItemStack gun, boolean needCheckAmmo,
+            CallbackInfoReturnable<Boolean> cir) {
+        if (cir.getReturnValueZ()) {
+            return; // already has loose inventory ammo
+        }
+        AbstractGunItem self = (AbstractGunItem) (Object) this;
+        if (!self.useInventoryAmmo(gun) || self.useDummyAmmo(gun)) {
+            return; // non-inventory guns' false is correct; dummy ammo handled by vanilla
+        }
+        if (!(shooter instanceof Player player) || !(gun.getItem() instanceof IGun iGun)) {
+            return;
+        }
+        ResourceLocation gunId = iGun.getGunId(gun);
+        if (PouchReloadSource.hasUsableAmmo(player, CaliberManager.getGunCalibers(gunId))) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    /**
+     * After bullet spread (muzzle velocity set) and before spawn, set flight friction for this mod's
+     * ammo by ballistic coefficient (speed decay, see ISpeedDecayBullet). Placed here instead of
+     * EntityKineticBullet.shoot(): TacZ fires via MC Projectile.shootFromRotation (m_37251_), not EKB's
+     * own shoot overload, and that MC method is inherited so it cannot be injected on EKB directly.
+     * Setting it before spawn lets friction sync to the client with spawn data.
      */
     @Inject(method = "doBulletSpread", at = @At("TAIL"), remap = false)
     private void tacz_caliber_ammo$initBulletSpeedDecay(ShooterDataHolder dataHolder, ItemStack gunItem,

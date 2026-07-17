@@ -4,13 +4,13 @@
   "ballisticCoefficient": 0.405,
   "baseDamage": 11.0,
   "caliber": "6_8x51",
-  "display": "tacz_caliber_ammo:6_8x51_display",
+  "display": "tacz_caliber_ammo:6_8x51_sig_fmj_display",
   "headShotMultiplier": 1.4,
   "name": "ammo.tacz_caliber_ammo.6_8x51.sig_fmj",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 0,
-  "sort": 99,
+  "sort": 100,
   "speed": 899,
   "stack_size": 60
 }

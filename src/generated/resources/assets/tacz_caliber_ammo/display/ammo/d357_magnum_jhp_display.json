@@ -1,0 +1,5 @@
+{
+  "model": "tacz:ammo/357mag",
+  "slot": "tacz_caliber_ammo:ammo/slot/d357/magnum_jhp",
+  "texture": "tacz:ammo/uv/357mag"
+}

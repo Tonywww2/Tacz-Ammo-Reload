@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -17,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.tacz.guns.api.item.IAmmo;
 import com.tacz.guns.api.item.IAmmoBox;
+import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.gun.AbstractGunItem;
 import com.tacz.guns.api.DefaultAssets;
 import com.tacz.guns.item.ModernKineticGunScriptAPI;
@@ -29,9 +31,12 @@ import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.caliber.Round;
 import com.tacz_caliber_ammo.config.ModConfig;
 import com.tacz_caliber_ammo.nbt.LoadedAmmoSequence;
+import com.tacz_caliber_ammo.reload.PouchReloadSource;
+import com.tacz_caliber_ammo.util.DebugLog;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
@@ -59,9 +64,10 @@ public class ModernKineticGunScriptAPIMixin {
     private Map<Integer, Round> tacz_caliber_ammo$preSnap;
     @Unique
     private List<Round> tacz_caliber_ammo$pendingConsumed;
-    /** 本次发射循环正出膛的弹种（dequeue 出队时记，供 doBulletSpread 每发覆写弹道用）。 */
     @Unique
     private ResourceLocation tacz_caliber_ammo$firingAmmoId;
+    @Unique
+    private boolean tacz_caliber_ammo$pouchSupplied;
 
     /** 快照背包中每个含弹药/弹药盒槽位的 (ammoId, count)。 */
     @Unique
@@ -84,13 +90,43 @@ public class ModernKineticGunScriptAPIMixin {
         return map;
     }
 
-    @Inject(method = "consumeAmmoFromPlayer", at = @At("HEAD"))
+    @Inject(method = "consumeAmmoFromPlayer", at = @At("HEAD"), cancellable = true)
     private void tacz_caliber_ammo$preConsume(int neededAmount, CallbackInfoReturnable<Integer> cir) {
+        this.tacz_caliber_ammo$pouchSupplied = false;
+        // 弹药包优先：快捷栏(槽 0-8)有「图案(口径过滤后)非空」弹药包时，按图案从包内(不足回退背包同弹种)供弹，
+        // 接管本次消耗(setReturnValue 取消原背包扣弹逻辑)。供不上(包+背包都无匹配弹种)则不接管，走原逻辑。
+        if (this.shooter instanceof Player player && this.itemStack != null
+                && this.itemStack.getItem() instanceof IGun gun) {
+            Set<ResourceLocation> calibers = CaliberManager.getGunCalibers(gun.getGunId(this.itemStack));
+            ItemStack pouch = PouchReloadSource.findUsablePouch(player, calibers);
+            if (!pouch.isEmpty()) {
+                // 图案位置取当前弹匣数(弹匣枪逐发换弹随之推进图案循环)。INVENTORY 供弹枪(如 M134)currentAmmoCount
+                // 恒 0 -> startPos 恒 0 = 始终用「首位匹配弹」: 有 pattern 取 pattern 首项、无 pattern 取 store 首项, 不循环。
+                int startPos = this.abstractGunItem.getCurrentAmmoCount(this.itemStack);
+                List<Round> seq = PouchReloadSource.supply(player, pouch, startPos, neededAmount, calibers,
+                        this.itemStack);
+                int total = 0;
+                for (Round r : seq) {
+                    total += r.count();
+                }
+                if (total > 0) {
+                    this.tacz_caliber_ammo$pendingConsumed = seq;
+                    DebugLog.log("pouchReload takeover: need={} startPos={} suppliedSeq={} total={}",
+                            neededAmount, startPos, seq, total);
+                    this.tacz_caliber_ammo$pouchSupplied = true;
+                    cir.setReturnValue(total);
+                    return;
+                }
+            }
+        }
         this.tacz_caliber_ammo$preSnap = this.tacz_caliber_ammo$snapshot();
     }
 
     @Inject(method = "consumeAmmoFromPlayer", at = @At("RETURN"))
     private void tacz_caliber_ammo$postConsume(int neededAmount, CallbackInfoReturnable<Integer> cir) {
+        if (this.tacz_caliber_ammo$pouchSupplied) {
+            return; // 弹药包已在 HEAD 设好 pendingConsumed，勿被背包差分覆盖
+        }
         Map<Integer, Round> pre = this.tacz_caliber_ammo$preSnap;
         this.tacz_caliber_ammo$preSnap = null;
         if (pre == null || pre.isEmpty()) {
@@ -126,12 +162,22 @@ public class ModernKineticGunScriptAPIMixin {
         for (Round r : seq) {
             before += r.count();
         }
+        boolean pouch = this.tacz_caliber_ammo$pouchSupplied;
+        this.tacz_caliber_ammo$pouchSupplied = false;
         int count = this.abstractGunItem.getCurrentAmmoCount(this.itemStack);
         int need = count - before; // 本次实际进弹匣的发数（consumed 若含进膛的一发会多出，不入匣）
         if (need > 0) {
-            // 新装填的弹药插入弹匣顶部(队首)：换弹时若弹匣仍有余弹，新装的先于余弹射出(真实弹匣 LIFO)。
-            // 发射从队首出队(popNextRound)，故 index 0 = 下一发。对生存(consumed 非空)/创造(空)统一头部插入。
-            seq.addAll(0, tacz_caliber_ammo$resolveIncoming(consumed, need));
+            List<Round> incoming = tacz_caliber_ammo$resolveIncoming(consumed, need);
+            if (pouch) {
+                DebugLog.log("pouchAfterPut FIFO: need={} incoming={} newSeq={}", need, incoming, seq);
+                // 弹药包换弹：按图案顺序(图案第 1 项先发)FIFO 尾插，使 LoadedSeq 队首=图案首项；
+                // 逐发换弹(m870 每次 need=1)若顶插会 LIFO 反转成末项先发，故弹药包路径必须尾插。
+                seq.addAll(incoming);
+            } else {
+                // 背包换弹：新装填弹药插入弹匣顶部(队首)，余弹时新装先于余弹射出(真实弹匣 LIFO)。
+                // 发射从队首出队(popNextRound)，故 index 0 = 下一发。对生存(consumed 非空)/创造(空)统一头部插入。
+                seq.addAll(0, incoming);
+            }
         }
         LoadedAmmoSequence.setSequence(this.itemStack, seq);
         // 兜底：与真实弹匣数对齐(desync 时截断/补齐)；补齐弹种优先取队首(新装)，否则默认弹种。
@@ -211,34 +257,41 @@ public class ModernKineticGunScriptAPIMixin {
                     target = "Lcom/tacz/guns/resource/pojo/data/gun/GunData;getAmmoId()Lnet/minecraft/resources/ResourceLocation;"))
     private ResourceLocation tacz_caliber_ammo$dequeue(GunData gunData) {
         ResourceLocation id;
-        Bolt bolt = tacz_caliber_ammo$bolt();
-        if (bolt == Bolt.CLOSED_BOLT) {
-            // 闭膛弹匣枪(稳态膛内恒有弹): 先击发膛内那发, 再从弹匣顶补一发进膛(轮换), 膛内始终有弹。
-            // 镜像 TacZ 稳态 reduceAmmoOnce: 弹匣有弹则 reduceCurrentAmmoCount(弹匣-1)+膛内标记保持;
-            // 弹匣空则 setBulletInBarrel(false)。故这里: 有膛内弹时 popNextRound(对应弹匣-1)补膛; 弹匣空则清膛。
-            id = LoadedAmmoSequence.peekBarrelAmmo(this.itemStack);
-            if (id != null) {
-                ResourceLocation refill = LoadedAmmoSequence.popNextRound(this.itemStack);
-                if (refill != null) {
-                    LoadedAmmoSequence.setBarrelAmmo(this.itemStack, refill); // 弹匣顶补进膛
+        if (tacz_caliber_ammo$isInventoryFed()) {
+            // INVENTORY 供弹(如 M134 转管机枪, reload.type=inventory): 弹药实时从背包/弹药包扣
+            // (reduceAmmoOnce->consumeAmmoFromPlayer(1)), 不入弹匣序列、无膛内弹。故用本次射击实际
+            // 消耗的弹种(pendingConsumed, 由 consumeAmmoFromPlayer 的 pre/postConsume 或弹药包设置)。
+            id = tacz_caliber_ammo$takeFiredFromPending();
+        } else {
+            Bolt bolt = tacz_caliber_ammo$bolt();
+            if (bolt == Bolt.CLOSED_BOLT) {
+                // 闭膛弹匣枪(稳态膛内恒有弹): 先击发膛内那发, 再从弹匣顶补一发进膛(轮换), 膛内始终有弹。
+                // 镜像 TacZ 稳态 reduceAmmoOnce: 弹匣有弹则 reduceCurrentAmmoCount(弹匣-1)+膛内标记保持;
+                // 弹匣空则 setBulletInBarrel(false)。故这里: 有膛内弹时 popNextRound(对应弹匣-1)补膛; 弹匣空则清膛。
+                id = LoadedAmmoSequence.peekBarrelAmmo(this.itemStack);
+                if (id != null) {
+                    ResourceLocation refill = LoadedAmmoSequence.popNextRound(this.itemStack);
+                    if (refill != null) {
+                        LoadedAmmoSequence.setBarrelAmmo(this.itemStack, refill); // 弹匣顶补进膛
+                    } else {
+                        LoadedAmmoSequence.takeBarrelAmmo(this.itemStack); // 弹匣空: 打掉最后的膛内弹, 清膛
+                    }
                 } else {
-                    LoadedAmmoSequence.takeBarrelAmmo(this.itemStack); // 弹匣空: 打掉最后的膛内弹, 清膛
+                    // 膛内空(边界/desync): 退化打弹匣队首
+                    id = LoadedAmmoSequence.popNextRound(this.itemStack);
+                }
+            } else if (bolt == Bolt.OPEN_BOLT) {
+                // 开膛待击无常驻膛内弹: 弹匣队首优先, 兜底膛内
+                id = LoadedAmmoSequence.popNextRound(this.itemStack);
+                if (id == null) {
+                    id = LoadedAmmoSequence.takeBarrelAmmo(this.itemStack);
                 }
             } else {
-                // 膛内空(边界/desync): 退化打弹匣队首
-                id = LoadedAmmoSequence.popNextRound(this.itemStack);
-            }
-        } else if (bolt == Bolt.OPEN_BOLT) {
-            // 开膛待击无常驻膛内弹: 弹匣队首优先, 兜底膛内
-            id = LoadedAmmoSequence.popNextRound(this.itemStack);
-            if (id == null) {
+                // MANUAL_ACTION(栓/泵动): 击发膛内那发, 不在此补膛(下次上膛 setAmmoInBarrel->onSetBarrel 从弹匣补)
                 id = LoadedAmmoSequence.takeBarrelAmmo(this.itemStack);
-            }
-        } else {
-            // MANUAL_ACTION(栓/泵动): 击发膛内那发, 不在此补膛(下次上膛 setAmmoInBarrel->onSetBarrel 从弹匣补)
-            id = LoadedAmmoSequence.takeBarrelAmmo(this.itemStack);
-            if (id == null) {
-                id = LoadedAmmoSequence.popNextRound(this.itemStack);
+                if (id == null) {
+                    id = LoadedAmmoSequence.popNextRound(this.itemStack);
+                }
             }
         }
         if (id == null) {
@@ -252,6 +305,36 @@ public class ModernKineticGunScriptAPIMixin {
     @Unique
     private Bolt tacz_caliber_ammo$bolt() {
         return this.gunIndex != null ? this.gunIndex.getGunData().getBolt() : null;
+    }
+
+    /** 该枪是否 INVENTORY 供弹（reload.type=inventory，如 M134 转管机枪；弹药实时从背包/弹药包取，不入弹匣、无膛内弹）。 */
+    @Unique
+    private boolean tacz_caliber_ammo$isInventoryFed() {
+        return this.abstractGunItem != null && this.itemStack != null
+                && this.abstractGunItem.useInventoryAmmo(this.itemStack);
+    }
+
+    /**
+     * 取本次射击实际消耗的一发弹种并消费之：来自 {@link #tacz_caliber_ammo$pendingConsumed}
+     * （由 consumeAmmoFromPlayer 的 pre/postConsume 差分或弹药包设置）。空则返回 null（调用方回退默认弹种）。
+     */
+    @Unique
+    private ResourceLocation tacz_caliber_ammo$takeFiredFromPending() {
+        List<Round> pc = this.tacz_caliber_ammo$pendingConsumed;
+        if (pc == null || pc.isEmpty()) {
+            return null;
+        }
+        Round first = pc.get(0);
+        ResourceLocation id = first.ammoId();
+        if (first.count() <= 1) {
+            pc.remove(0);
+        } else {
+            pc.set(0, new Round(id, first.count() - 1));
+        }
+        if (pc.isEmpty()) {
+            this.tacz_caliber_ammo$pendingConsumed = null;
+        }
+        return id;
     }
 
     /**

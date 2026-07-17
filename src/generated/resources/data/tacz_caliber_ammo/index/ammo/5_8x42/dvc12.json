@@ -1,0 +1,16 @@
+{
+  "accuracy": 8,
+  "armorIgnore": 0.5,
+  "ballisticCoefficient": 0.33,
+  "baseDamage": 9.0,
+  "caliber": "5_8x42",
+  "display": "tacz_caliber_ammo:5_8x42_dvc12_display",
+  "headShotMultiplier": 1.35,
+  "name": "ammo.tacz_caliber_ammo.5_8x42.dvc12",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 5,
+  "sort": 213,
+  "speed": 945,
+  "stack_size": 60
+}

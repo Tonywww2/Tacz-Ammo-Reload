@@ -1,6 +1,7 @@
 package com.tacz_caliber_ammo;
 
 import com.mojang.logging.LogUtils;
+import com.tacz_caliber_ammo.registry.ModItems;
 import net.minecraft.resources.ResourceLocation;
 //? if forge {
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -39,9 +40,8 @@ public class TaczCaliberAmmo {
     /*public TaczCaliberAmmo(IEventBus modBus) {
     *///?}
 
-        // TODO: 在此把 DeferredRegister 注册到 modBus，例如：
-        //   ModItems.REGISTER.register(modBus);
-        modBus.hashCode();
+        // 物品注册（本 mod 首个 DeferredRegister；当前为弹药包）。
+        ModItems.REGISTER.register(modBus);
 
         LOGGER.info("[{}] TacZ Caliber Ammo loaded.", MODID);
     }

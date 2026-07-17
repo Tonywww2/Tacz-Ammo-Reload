@@ -1,0 +1,16 @@
+{
+  "accuracy": 60,
+  "armorIgnore": 0.25,
+  "ballisticCoefficient": 0.032,
+  "baseDamage": 20.0,
+  "caliber": "20_70",
+  "display": "tacz_caliber_ammo:20_70_slug_display",
+  "headShotMultiplier": 1.3,
+  "name": "ammo.tacz_caliber_ammo.20_70.slug",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 40,
+  "sort": 177,
+  "speed": 476,
+  "stack_size": 60
+}

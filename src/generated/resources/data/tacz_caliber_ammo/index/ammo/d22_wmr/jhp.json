@@ -4,13 +4,13 @@
   "ballisticCoefficient": 0.1,
   "baseDamage": 6.5,
   "caliber": "d22_wmr",
-  "display": "tacz:22wmr_display",
+  "display": "tacz_caliber_ammo:d22_wmr_jhp_display",
   "headShotMultiplier": 1.55,
   "name": "ammo.tacz_caliber_ammo.d22_wmr.jhp",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 0,
-  "sort": 183,
+  "sort": 195,
   "speed": 600,
   "stack_size": 60
 }

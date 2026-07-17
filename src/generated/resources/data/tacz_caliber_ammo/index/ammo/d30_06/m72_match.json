@@ -4,13 +4,13 @@
   "ballisticCoefficient": 0.4,
   "baseDamage": 11.5,
   "caliber": "d30_06",
-  "display": "tacz:30_06_display",
+  "display": "tacz_caliber_ammo:d30_06_m72_match_display",
   "headShotMultiplier": 1.35,
   "name": "ammo.tacz_caliber_ammo.d30_06.m72_match",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 3,
-  "sort": 199,
+  "sort": 217,
   "speed": 830,
   "stack_size": 60
 }

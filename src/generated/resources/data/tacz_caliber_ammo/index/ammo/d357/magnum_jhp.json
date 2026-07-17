@@ -4,13 +4,13 @@
   "ballisticCoefficient": 0.155,
   "baseDamage": 12.5,
   "caliber": "d357",
-  "display": "tacz:357mag_display",
+  "display": "tacz_caliber_ammo:d357_magnum_jhp_display",
   "headShotMultiplier": 1.65,
   "name": "ammo.tacz_caliber_ammo.d357.magnum_jhp",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 8,
-  "sort": 49,
+  "sort": 50,
   "speed": 425,
   "stack_size": 60
 }

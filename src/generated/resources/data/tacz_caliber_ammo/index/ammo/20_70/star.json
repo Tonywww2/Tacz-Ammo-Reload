@@ -4,13 +4,13 @@
   "ballisticCoefficient": 0.121,
   "baseDamage": 21.5,
   "caliber": "20_70",
-  "display": "tacz_caliber_ammo:20_70_display",
+  "display": "tacz_caliber_ammo:20_70_star_display",
   "headShotMultiplier": 1.35,
   "name": "ammo.tacz_caliber_ammo.20_70.star",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 5,
-  "sort": 172,
+  "sort": 180,
   "speed": 415,
   "stack_size": 60
 }

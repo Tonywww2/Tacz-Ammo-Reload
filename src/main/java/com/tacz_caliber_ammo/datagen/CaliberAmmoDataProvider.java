@@ -60,6 +60,20 @@ public class CaliberAmmoDataProvider implements DataProvider {
     /** 口径 id -> TacZ 原型 display 基名 (复用 tacz:&lt;base&gt;_display)；不在表中 = 无原型 -> 纯色占位。 */
     private static final Map<String, String> PROTO = buildProto();
 
+    /** 口径 id -> 自定义飞行弹(entity) geo 模型基名，放在 assets/&lt;ns&gt;/geo_models/ammo_entity/&lt;base&gt;.json。
+     *  该口径带 slot 贴图的弹种会附加 display 的 entity 块：若存在
+     *  textures/ammo_entity/&lt;id&gt;/&lt;model&gt;.png 则用本命名空间自定义 model+uv，
+     *  否则回退 tacz 默认 entity(model 与 texture 均为 tacz:ammo_entity/&lt;base&gt;)。 */
+    private static final Map<String, String> ENTITY_MODEL = Map.of("40x46", "40mm_grenade");
+
+    /** protoBase -> 真实 geo 模型名（当 geo 文件名与 base 不同）；未列出者用 base 本身。
+     *  例：40mm 的手持/几何体是 tacz:ammo/40mm_grenade（tacz 无 geo_models/ammo/40mm.json）。 */
+    private static final Map<String, String> AMMO_GEO = Map.of("40mm", "40mm_grenade");
+
+    /** 无 3D 手持几何体的 protoBase：tacz 本体这些弹的 display 只有 slot/shell、没有 model。
+     *  对它们不要写 model/texture（否则指向不存在的 geo 会抛错、连带 entity 也不加载）；手持退化为 slot 平面图标，与原版一致。 */
+    private static final java.util.List<String> NO_HELD_MODEL = java.util.List.of("22wmr", "45_70", "500mag", "792x57");
+
     private static Map<String, String> buildCalId() {
         Map<String, String> m = new HashMap<>();
         m.put("12/70", "12_70");
@@ -226,13 +240,33 @@ public class CaliberAmmoDataProvider implements DataProvider {
                 JsonObject vDisp = new JsonObject();
                 if (PROTO.containsKey(calId)) {
                     String protoBase = PROTO.get(calId);
-                    vDisp.addProperty("model", "tacz:ammo/" + protoBase);
-                    vDisp.addProperty("texture", "tacz:ammo/uv/" + protoBase);
+                    if (!NO_HELD_MODEL.contains(protoBase)) {
+                        // 有 3D 手持几何体：model 用真实 geo 名（40mm 的 geo 是 40mm_grenade），texture 用 uv 基名。
+                        vDisp.addProperty("model", "tacz:ammo/" + AMMO_GEO.getOrDefault(protoBase, protoBase));
+                        vDisp.addProperty("texture", "tacz:ammo/uv/" + protoBase);
+                    }
+                    // NO_HELD_MODEL 的口径 tacz 本体也无 model，故省略；手持退化为 slot 平面图标（与原版一致）。
                 } else {
                     vDisp.addProperty("model", "tacz:ammo/308");
                     vDisp.addProperty("texture", NS + ":ammo/uv/" + calId);
                 }
                 vDisp.addProperty("slot", NS + ":ammo/slot/" + calId + "/" + model);
+                // 自定义飞行弹(entity)：该口径在 ENTITY_MODEL 中时附加 entity 块。
+                // 存在 per-变种 uv -> 用本命名空间自定义 model+uv；否则回退 tacz 默认 entity。
+                String entBase = ENTITY_MODEL.get(calId);
+                if (entBase != null) {
+                    JsonObject ent = new JsonObject();
+                    Path entUv = projectRoot.resolve("src/main/resources/assets/" + NS
+                            + "/textures/ammo_entity/" + calId + "/" + model + ".png");
+                    if (Files.exists(entUv)) {
+                        ent.addProperty("model", NS + ":ammo_entity/" + entBase);
+                        ent.addProperty("texture", NS + ":ammo_entity/" + calId + "/" + model);
+                    } else {
+                        ent.addProperty("model", "tacz:ammo_entity/" + entBase);
+                        ent.addProperty("texture", "tacz:ammo_entity/" + entBase);
+                    }
+                    vDisp.add("entity", ent);
+                }
                 futures.add(DataProvider.saveStable(cache, vDisp,
                         root.resolve("assets/" + NS + "/display/ammo/" + calId + "_" + model + "_display.json")));
             }

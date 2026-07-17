@@ -4,7 +4,7 @@
   "ballisticCoefficient": 0.124,
   "baseDamage": 7.5,
   "caliber": "7_62x25",
-  "display": "tacz_caliber_ammo:7_62x25_display",
+  "display": "tacz_caliber_ammo:7_62x25_pt_display",
   "headShotMultiplier": 1.4,
   "name": "ammo.tacz_caliber_ammo.7_62x25.pt",
   "pelletCount": 1,

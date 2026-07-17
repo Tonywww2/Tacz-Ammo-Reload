@@ -4,13 +4,13 @@
   "ballisticCoefficient": 0.144,
   "baseDamage": 19.0,
   "caliber": "20_70",
-  "display": "tacz_caliber_ammo:20_70_display",
+  "display": "tacz_caliber_ammo:20_70_poleva_6u_display",
   "headShotMultiplier": 1.4,
   "name": "ammo.tacz_caliber_ammo.20_70.poleva_6u",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": -10,
-  "sort": 171,
+  "sort": 179,
   "speed": 445,
   "stack_size": 60
 }

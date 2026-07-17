@@ -4,13 +4,13 @@
   "ballisticCoefficient": 0.2,
   "baseDamage": 21.0,
   "caliber": "d500_magnum",
-  "display": "tacz:500mag_display",
+  "display": "tacz_caliber_ammo:d500_magnum_jhp_display",
   "headShotMultiplier": 1.65,
   "name": "ammo.tacz_caliber_ammo.d500_magnum.jhp",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 15,
-  "sort": 188,
+  "sort": 200,
   "speed": 490,
   "stack_size": 60
 }

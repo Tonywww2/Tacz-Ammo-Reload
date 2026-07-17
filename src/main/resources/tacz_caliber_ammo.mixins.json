@@ -18,6 +18,7 @@
   "client": [
     "client.CameraSetupEventMixin",
     "client.ClientGunTooltipMixin",
+    "client.GunHudOverlayMixin",
     "client.GunRefitScreenMixin",
     "client.HideAmmoModifierDiagramsMixin"
   ],

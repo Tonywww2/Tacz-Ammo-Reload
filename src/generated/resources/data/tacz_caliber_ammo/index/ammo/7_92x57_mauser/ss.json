@@ -4,13 +4,13 @@
   "ballisticCoefficient": 0.35,
   "baseDamage": 11.5,
   "caliber": "7_92x57_mauser",
-  "display": "tacz:792x57_display",
+  "display": "tacz_caliber_ammo:7_92x57_mauser_ss_display",
   "headShotMultiplier": 1.4,
   "name": "ammo.tacz_caliber_ammo.7_92x57_mauser.ss",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 5,
-  "sort": 201,
+  "sort": 219,
   "speed": 760,
   "stack_size": 60
 }

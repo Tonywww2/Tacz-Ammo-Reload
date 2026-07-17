@@ -4,13 +4,13 @@
   "ballisticCoefficient": 0.032,
   "baseDamage": 27.5,
   "caliber": "20_70",
-  "display": "tacz_caliber_ammo:20_70_display",
+  "display": "tacz_caliber_ammo:20_70_devastator_display",
   "headShotMultiplier": 1.9,
   "name": "ammo.tacz_caliber_ammo.20_70.devastator",
   "pelletCount": 1,
   "pierce": 1,
   "recoil": 30,
-  "sort": 174,
+  "sort": 182,
   "speed": 405,
   "stack_size": 60
 }
