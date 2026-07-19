@@ -206,8 +206,8 @@ public final class TooltipHandler {
         return fmt(v * 100f) + "%";
     }
 
-    /** 带符号百分比（+8%、-15%、0%）；供后坐力/精度修正显示。 */
+    /** 带符号百分比（+8%、-15%、+0%）；供后坐力/精度修正显示。0 也显示 "+0%"。 */
     private static String signedPercent(float v) {
-        return (v > 0 ? "+" : "") + fmt(v) + "%";
+        return (v >= 0 ? "+" : "") + fmt(v) + "%";
     }
 }

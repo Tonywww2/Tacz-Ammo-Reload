@@ -4,7 +4,7 @@
   "ballisticCoefficient": 0.091,
   "baseDamage": 23.0,
   "caliber": "12_7x55",
-  "display": "tacz_caliber_ammo:12_7x55_display",
+  "display": "tacz_caliber_ammo:12_7x55_ps12a_display",
   "headShotMultiplier": 1.7,
   "name": "ammo.tacz_caliber_ammo.12_7x55.ps12a",
   "pelletCount": 1,

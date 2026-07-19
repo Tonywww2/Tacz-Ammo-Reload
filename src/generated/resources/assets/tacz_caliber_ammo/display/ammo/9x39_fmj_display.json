@@ -1,0 +1,5 @@
+{
+  "model": "tacz:ammo/308",
+  "slot": "tacz_caliber_ammo:ammo/slot/9x39/fmj",
+  "texture": "tacz_caliber_ammo:ammo/uv/9x39"
+}

@@ -4,7 +4,7 @@
   "ballisticCoefficient": 0.414,
   "baseDamage": 8.5,
   "caliber": "9x39",
-  "display": "tacz_caliber_ammo:9x39_display",
+  "display": "tacz_caliber_ammo:9x39_sp_6_display",
   "headShotMultiplier": 1.35,
   "name": "ammo.tacz_caliber_ammo.9x39.sp_6",
   "pelletCount": 1,

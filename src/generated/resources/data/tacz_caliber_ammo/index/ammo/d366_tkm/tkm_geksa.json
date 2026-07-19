@@ -4,7 +4,7 @@
   "ballisticCoefficient": 0.241,
   "baseDamage": 15.5,
   "caliber": "d366_tkm",
-  "display": "tacz_caliber_ammo:d366_tkm_display",
+  "display": "tacz_caliber_ammo:d366_tkm_tkm_geksa_display",
   "headShotMultiplier": 1.55,
   "name": "ammo.tacz_caliber_ammo.d366_tkm.tkm_geksa",
   "pelletCount": 1,
