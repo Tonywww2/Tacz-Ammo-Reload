@@ -27,5 +27,11 @@ public final class ModNetwork {
         int id = 0;
         CHANNEL.registerMessage(id++, CMsgUnloadAmmo.class,
                 CMsgUnloadAmmo::encode, CMsgUnloadAmmo::decode, CMsgUnloadAmmo::handle);
+        CHANNEL.registerMessage(id++, CMsgPouchWithdraw.class,
+                CMsgPouchWithdraw::encode, CMsgPouchWithdraw::decode, CMsgPouchWithdraw::handle);
+        CHANNEL.registerMessage(id++, CMsgPouchPattern.class,
+                CMsgPouchPattern::encode, CMsgPouchPattern::decode, CMsgPouchPattern::handle);
+        CHANNEL.registerMessage(id++, CMsgPouchDeposit.class,
+                CMsgPouchDeposit::encode, CMsgPouchDeposit::decode, CMsgPouchDeposit::handle);
     }
 }

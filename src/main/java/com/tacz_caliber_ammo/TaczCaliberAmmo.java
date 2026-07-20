@@ -2,6 +2,7 @@ package com.tacz_caliber_ammo;
 
 import com.mojang.logging.LogUtils;
 import com.tacz_caliber_ammo.registry.ModItems;
+import com.tacz_caliber_ammo.registry.ModMenus;
 import net.minecraft.resources.ResourceLocation;
 //? if forge {
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -42,6 +43,8 @@ public class TaczCaliberAmmo {
 
         // 物品注册（本 mod 首个 DeferredRegister；当前为弹药包）。
         ModItems.REGISTER.register(modBus);
+        // 菜单类型注册（弹药包 GUI）。
+        ModMenus.REGISTER.register(modBus);
 
         LOGGER.info("[{}] TacZ Caliber Ammo loaded.", MODID);
     }

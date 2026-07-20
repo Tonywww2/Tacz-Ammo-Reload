@@ -10,6 +10,7 @@ import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IAmmo;
 import com.tacz.guns.api.item.builder.AmmoItemBuilder;
 import com.tacz_caliber_ammo.caliber.PatternEntry;
+import com.tacz_caliber_ammo.menu.AmmoPouchMenu;
 import com.tacz_caliber_ammo.nbt.NbtKeys;
 import com.tacz_caliber_ammo.util.DebugLog;
 
@@ -19,10 +20,12 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
+import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ClickAction;
@@ -34,6 +37,7 @@ import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.capabilities.ForgeCapabilities;
 import net.minecraftforge.items.IItemHandler;
+import net.minecraftforge.network.NetworkHooks;
 
 /**
  * 弹药包：多弹种存储 + 压弹图案（Stage 6）。
@@ -206,6 +210,18 @@ public class AmmoPouchItem extends Item {
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack pouch = player.getItemInHand(hand);
+        // Normal right-click opens the pouch GUI (server side, main hand). Sneak + right-click keeps
+        // the dev-only fill scaffold below for testing.
+        if (!player.isShiftKeyDown()) {
+            if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer
+                    && hand == InteractionHand.MAIN_HAND) {
+                int pouchSlot = player.getInventory().selected;
+                NetworkHooks.openScreen(serverPlayer, new SimpleMenuProvider(
+                        (id, inv, p) -> new AmmoPouchMenu(id, inv, pouchSlot), pouch.getHoverName()),
+                        buf -> buf.writeVarInt(pouchSlot));
+            }
+            return InteractionResultHolder.success(pouch);
+        }
         if (level.isClientSide() || !DebugLog.ENABLED) {
             return InteractionResultHolder.success(pouch);
         }
