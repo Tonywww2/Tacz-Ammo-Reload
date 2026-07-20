@@ -2,7 +2,8 @@
   "guns": {
     "tacz:m700": [
       "tacz_caliber_ammo:7_62x51",
-      "tacz_caliber_ammo:d30_06"
+      "tacz_caliber_ammo:d30_06",
+      "tacz_caliber_ammo:26_75"
     ]
   },
   "priority": 0

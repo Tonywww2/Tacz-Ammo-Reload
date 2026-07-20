@@ -20,9 +20,12 @@ import com.tacz_caliber_ammo.caliber.AmmoProfile;
 import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.caliber.GunDamageModifier;
 import com.tacz_caliber_ammo.config.ModConfig;
+import com.tacz_caliber_ammo.duck.IGravityBullet;
 import com.tacz_caliber_ammo.duck.ISpeedDecayBullet;
 import com.tacz_caliber_ammo.effect.AmmoEffectDispatcher;
 import com.tacz_caliber_ammo.effect.AmmoEffectScriptAPI;
+import com.tacz_caliber_ammo.effect.FlareEffect;
+import com.tacz_caliber_ammo.event.BulletCreatedEvent;
 import com.tacz_caliber_ammo.util.DebugLog;
 
 import net.minecraft.resources.ResourceLocation;
@@ -33,6 +36,7 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.common.MinecraftForge;
 
 /**
  * 伤害所有权反转（PB-3）。在子弹构造末尾按 ammoId 取弹药档，
@@ -42,7 +46,7 @@ import net.minecraft.world.phys.Vec3;
  * CR-1: 目标 TacZ 类 EntityKineticBullet, 置 remap=false(其字段/构造非 MC 映射)。
  */
 @Mixin(value = EntityKineticBullet.class, remap = false)
-public class EntityKineticBulletMixin implements ISpeedDecayBullet {
+public class EntityKineticBulletMixin implements ISpeedDecayBullet, IGravityBullet {
 
     @Shadow
     private LinkedList<ExtraDamage.DistanceDamagePair> damageAmount;
@@ -68,6 +72,9 @@ public class EntityKineticBulletMixin implements ISpeedDecayBullet {
     private float friction;
     @Shadow
     private int life;
+    /** TacZ 私有：子弹每 tick 的下坠重力（构造时由 bulletData.gravity 设定）。经 IGravityBullet 暴露给事件监听器。 */
+    @Shadow
+    private float gravity;
 
     /** TacZ 私有：对给定属性 id 应用配件修正（用于叠加 DAMAGE 配件加成）。@Shadow 存根。 */
     @Shadow
@@ -142,6 +149,33 @@ public class EntityKineticBulletMixin implements ISpeedDecayBullet {
         }
     }
 
+    // 发布子弹创建事件(通用, 无弹种特例): 在 TacZ 完整构造末尾(gravity/friction 已设, spawn 之前),
+    // 把子弹经 BulletCreatedEvent 交给普通 Java 事件监听器定制弹道 -- mixin 只暴露(见 IGravityBullet),
+    // 不判断任何弹种; 仅服务端发布, gravity 改动随 spawn 数据同步到客户端。
+    @Inject(
+        method = "<init>(Lnet/minecraft/world/entity/EntityType;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/resources/ResourceLocation;Lnet/minecraft/resources/ResourceLocation;Lnet/minecraft/resources/ResourceLocation;ZLcom/tacz/guns/resource/pojo/data/gun/GunData;Lcom/tacz/guns/resource/pojo/data/gun/BulletData;)V",
+        at = @At("TAIL"))
+    private void taczCaliberAmmo$postBulletCreated(EntityType<? extends Projectile> type, Level worldIn,
+            LivingEntity throwerIn, ItemStack gunItem, ResourceLocation ammoIdArg, ResourceLocation gunIdArg,
+            ResourceLocation gunDisplayId, boolean isTracerAmmo, GunData gunData, BulletData bulletData,
+            CallbackInfo ci) {
+        if (worldIn.isClientSide()) {
+            return;
+        }
+        MinecraftForge.EVENT_BUS.post(new BulletCreatedEvent((EntityKineticBullet) (Object) this));
+    }
+
+    /** IGravityBullet：暴露 TacZ 私有 gravity 供事件监听器读写（mixin 只暴露、不含弹种逻辑）。 */
+    @Override
+    public float taczCaliberAmmo$getGravity() {
+        return this.gravity;
+    }
+
+    @Override
+    public void taczCaliberAmmo$setGravity(float value) {
+        this.gravity = value;
+    }
+
     /** on_bullet_tick：子弹每 tick（服务端）派发脚本钩子（仅当脚本定义了该函数才真正执行，见 AmmoEffectDispatcher）。 */
     @Inject(method = "onBulletTick", at = @At("HEAD"))
     private void taczCaliberAmmo$onBulletTick(CallbackInfo ci) {
@@ -150,6 +184,7 @@ public class EntityKineticBulletMixin implements ISpeedDecayBullet {
             return;
         }
         taczCaliberAmmo$logSpeedDecayTick(self);
+        FlareEffect.tick(self);
         AmmoEffectDispatcher.dispatch(self.getAmmoId(), "on_bullet_tick",
                 () -> new AmmoEffectScriptAPI(self, null, self.position(), "on_bullet_tick"));
     }

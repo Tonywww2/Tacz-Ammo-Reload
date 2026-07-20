@@ -32,9 +32,9 @@ public final class TooltipHandler {
             return;
         }
         if (stack.getItem() instanceof IAmmo ammo) {
-            appendAmmo(ammo.getAmmoId(stack), lines);
+            appendAmmo(ammo.getAmmoId(stack), lines, stack.getMaxStackSize());
         } else if (stack.getItem() instanceof IAmmoBox box) {
-            appendAmmo(box.getAmmoId(stack), lines);
+            appendAmmo(box.getAmmoId(stack), lines, 0);
         }
     }
 
@@ -101,7 +101,7 @@ public final class TooltipHandler {
      * 弹药/弹药盒：显示口径 + 弹道档（若已配置）；未配置显示"未配置口径"。标签深灰、具体数值白色；
      * 插到 index 1（物品名下方第一行，与枪口径同在首行位置）。
      */
-    private static void appendAmmo(ResourceLocation ammoId, List<Component> lines) {
+    private static void appendAmmo(ResourceLocation ammoId, List<Component> lines, int stackSize) {
         if (ammoId == null) {
             return;
         }
@@ -133,6 +133,9 @@ public final class TooltipHandler {
                 out.add(signedValueLine("tooltip.tacz_caliber_ammo.accuracy", p.accuracyModifier(), false));
                 appendEffects(p.effects(), out);
             }
+        }
+        if (stackSize > 0) {
+            out.add(valueLine("tooltip.tacz_caliber_ammo.stack_size", Integer.toString(stackSize)));
         }
         lines.addAll(Math.min(1, lines.size()), out);
     }

@@ -1,0 +1,23 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 10,
+      "item": {
+        "tag": "forge:ingots/copper"
+      }
+    },
+    {
+      "count": 2,
+      "item": {
+        "tag": "forge:gunpowder"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 24,
+    "group": "tacz_caliber_ammo:26_75",
+    "id": "tacz_caliber_ammo:26_75/white"
+  }
+}

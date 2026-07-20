@@ -55,6 +55,16 @@
       "icon": {
         "item": "tacz:ammo",
         "nbt": {
+          "AmmoId": "tacz_caliber_ammo:26_75/acid_green"
+        }
+      },
+      "id": "tacz_caliber_ammo:26_75",
+      "name": "26x75mm"
+    },
+    {
+      "icon": {
+        "item": "tacz:ammo",
+        "nbt": {
           "AmmoId": "tacz_caliber_ammo:30x29/vog_30"
         }
       },

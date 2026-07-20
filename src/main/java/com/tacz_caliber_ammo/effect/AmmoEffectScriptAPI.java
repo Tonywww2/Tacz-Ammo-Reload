@@ -86,6 +86,11 @@ public final class AmmoEffectScriptAPI {
         return target == null ? 0.0 : target.getHealth();
     }
 
+    /** 子弹已飞行的游戏刻（tick，20 tick = 1 秒）；用于 on_bullet_tick 里按飞行时长触发效果。 */
+    public int getAge() {
+        return bullet.tickCount;
+    }
+
     // ==== 效果助手（服务端） ====
 
     /** 点燃目标 {@code seconds} 秒（无目标则无效）。 */

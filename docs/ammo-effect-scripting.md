@@ -55,6 +55,7 @@ return M
 | `api:hasShooter()` | bool | 是否有射手 |
 | `api:getX()` / `getY()` / `getZ()` | number | 命中/子弹坐标 |
 | `api:getTargetHealth()` | number | 目标当前生命值（无目标为 0） |
+| `api:getAge()` | number | 子弹已飞行的游戏刻（tick，20 = 1 秒）；配合 `on_bullet_tick` 做飞行 N tick 后触发 |
 
 **效果助手**（都有空值保护：无目标/无射手时对应助手自动无效）
 

@@ -54,7 +54,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
     private static final Set<String> STOP = Set.of(
             "TT", "NATO", "PARA", "ACP", "HK", "FN", "GYURZA", "BLACKOUT", "MARLIN", "VOG");
 
-    /** CSV 的中文口径名 -> 本项目口径 id (calibers.md)。未列入者跳过(信号弹/榴弹/杂项)。 */
+    /** CSV 的中文口径名 -> 本项目口径 id (calibers.md)。未列入者跳过(榴弹/杂项)。 */
     private static final Map<String, String> CAL_ID = buildCalId();
 
     /** 口径 id -> TacZ 原型 display 基名 (复用 tacz:&lt;base&gt;_display)；不在表中 = 无原型 -> 纯色占位。 */
@@ -115,6 +115,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
         m.put("12.7x108mm", "12_7x108");
         m.put("30x29mm", "30x29");
         m.put("40mm VOG-25", "40_vog_25");
+        m.put("26x75mm", "26_75");
         return m;
     }
 
@@ -217,7 +218,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
             JsonObject json = new JsonObject();
             json.addProperty("name", "ammo." + NS + "." + calId + "." + model);
             json.addProperty("display", display);
-            json.addProperty("stack_size", 60);
+            json.addProperty("stack_size", stackSizeFor(c[iCat]));
             json.addProperty("sort", sort++);
             json.addProperty("caliber", calId);
             json.addProperty("baseDamage", (float) base);
@@ -462,6 +463,22 @@ public class CaliberAmmoDataProvider implements DataProvider {
         recipe.add("result", result);
         recipe.addProperty("type", "tacz:gun_smith_table_crafting");
         return recipe;
+    }
+
+    /** Stack size by ammo category (CSV col1): rifle 40, shotgun 20, grenade/rocket 6, else (pistol/PDW/flare) 60. */
+    private static int stackSizeFor(String category) {
+        switch (category == null ? "" : category.trim()) {
+            case "步枪":
+                return 40;
+            case "霰弹枪":
+                return 20;
+            case "榴弹":
+                return 6;
+            case "信号弹":
+                return 1;
+            default:
+                return 60;
+        }
     }
 
     private static JsonObject material(String tag, int count) {

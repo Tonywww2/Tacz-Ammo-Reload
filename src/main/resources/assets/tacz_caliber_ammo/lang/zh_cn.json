@@ -39,6 +39,7 @@
   "tooltip.tacz_caliber_ammo.pellet_count": "弹丸数：%s",
   "tooltip.tacz_caliber_ammo.recoil": "后坐力：%s",
   "tooltip.tacz_caliber_ammo.accuracy": "精度：%s",
+  "tooltip.tacz_caliber_ammo.stack_size": "堆叠数量：%s",
   "tooltip.tacz_caliber_ammo.gun_flat_damage": "固定伤害：%s",
   "tooltip.tacz_caliber_ammo.gun_percent_damage": "伤害加成：%s",
   "tooltip.tacz_caliber_ammo.effect.explosion": "命中爆炸",
@@ -709,5 +710,19 @@
   "ammo.tacz_caliber_ammo.d45_70.shot.abbr": "Shot",
   "ammo.tacz_caliber_ammo.d45_70.shot.abbr.off": "true",
   "ammo.tacz_caliber_ammo.72_5.shg_2": "72.5mm ShG-2",
-  "ammo.tacz_caliber_ammo.72_5.shg_2.abbr": "ShG-2"
+  "ammo.tacz_caliber_ammo.72_5.shg_2.abbr": "ShG-2",
+  "ammo.tacz_caliber_ammo.26_75.acid_green": "26x75mm 酸绿信号弹",
+  "ammo.tacz_caliber_ammo.26_75.acid_green.abbr": "酸绿",
+  "ammo.tacz_caliber_ammo.26_75.blue": "26x75mm 蓝色信号弹",
+  "ammo.tacz_caliber_ammo.26_75.blue.abbr": "蓝",
+  "ammo.tacz_caliber_ammo.26_75.green": "26x75mm 绿色信号弹",
+  "ammo.tacz_caliber_ammo.26_75.green.abbr": "绿",
+  "ammo.tacz_caliber_ammo.26_75.new_year": "26x75mm 新年信号弹",
+  "ammo.tacz_caliber_ammo.26_75.new_year.abbr": "新年",
+  "ammo.tacz_caliber_ammo.26_75.red": "26x75mm 红色信号弹",
+  "ammo.tacz_caliber_ammo.26_75.red.abbr": "红",
+  "ammo.tacz_caliber_ammo.26_75.white": "26x75mm 白色信号弹",
+  "ammo.tacz_caliber_ammo.26_75.white.abbr": "白",
+  "ammo.tacz_caliber_ammo.26_75.yellow": "26x75mm 黄色信号弹",
+  "ammo.tacz_caliber_ammo.26_75.yellow.abbr": "黄"
 }

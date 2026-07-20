@@ -313,7 +313,7 @@ return M
 
 **4. api 助手**（都有空值保护，无目标 / 射手时自动无效）：
 
-- 查询：`getAmmoId()` `getHook()` `hasTarget()` `hasShooter()` `getX()/getY()/getZ()` `getTargetHealth()`
+- 查询：`getAmmoId()` `getHook()` `hasTarget()` `hasShooter()` `getX()/getY()/getZ()` `getTargetHealth()` `getAge()`（子弹已飞行 tick）
 - 作用于目标：`ignite(sec)` `addEffect(id, ticks, amp)` `damageTarget(n)` `knockback(s)` `pull(s)`
 - 作用于射手：`healShooter(n)`
 - 范围类（**会波及命中点附近实体，含射手 / 玩家自己**）：`explode(radius, fire, destroyBlock)` `strikeLightning()`
@@ -388,6 +388,54 @@ return M
 
 > 声明式与脚本可**同时**用（同一 `effects` 里既有 `explosion` 又有 `script`）。
 > 本 mod 自带 `incendiary` / `poison` / `explosive` / `vampire` / `tracer_spark` 五个示例脚本，写进 `effects.script` 即用。
+
+### KubeJS 事件效果（用 JS，不写 Lua）
+
+习惯 KubeJS 的话可以完全绕开 Lua。**本项目本身不额外新增事件**——它复用 TacZ 的枪械事件（TacZ 已把这些桥接到 KubeJS 的 `TimelessGunEvents` 事件组），你在事件里判断子弹弹种是不是本项目弹药（`ammoId` 命名空间 = `tacz_caliber_ammo`），再做任意效果。凡是能拿到 `EntityKineticBullet` 的 TacZ 事件都可用。
+
+放到 `kubejs/server_scripts/`（效果服务端结算）：
+
+```js
+// 命中实体：被 7.62x51 M993 穿甲弹打中的目标附加凋零
+TimelessGunEvents.entityHurtByGunPost(event => {
+  let e = event.getForgeEvent()
+  let bullet = e.getBullet()
+  if (!bullet) return
+  if (bullet.getAmmoId().toString() == 'tacz_caliber_ammo:7_62x51/m993') {
+    let target = e.getHurtEntity()
+    if (target) target.potionEffects.add('minecraft:wither', 100, 1)
+  }
+})
+
+// 击杀：本项目任意弹药击杀时（按命名空间整包匹配）给被击杀者发光标记
+TimelessGunEvents.entityKillByGun(event => {
+  let e = event.getForgeEvent()
+  let bullet = e.getBullet()
+  if (bullet && bullet.getAmmoId().getNamespace() == 'tacz_caliber_ammo') {
+    let dead = e.getKilledEntity()
+    if (dead) dead.potionEffects.add('minecraft:glowing', 60, 0)
+  }
+})
+
+// 命中方块（server 类事件）：本项目弹药落点处理
+TimelessGunEvents.ammoHitBlock(event => {
+  let e = event.getForgeEvent()
+  let bullet = e.getAmmo()
+  if (bullet && bullet.getAmmoId().getNamespace() == 'tacz_caliber_ammo') {
+    let pos = e.getHitResult().getLocation() // 命中点 Vec3(x, y, z)
+    // 你的逻辑：用 bullet.level() + pos 生成粒子 / 方块等
+  }
+})
+```
+
+要点：
+
+- 事件组是 **`TimelessGunEvents`**（TacZ 提供，不是本项目的）；common 事件还有 `entityHurtByGunPre`（可 `event.cancel()`）、`gunShoot`、`gunFire`、`gunReload` 等，server 事件有 `ammoHitBlock`。
+- `event.getForgeEvent()` 拿原始 Forge 事件；命中 / 击杀用 `.getBullet()`、命中方块用 `.getAmmo()`，都得到 `EntityKineticBullet`。
+- 认弹种：精确到某发用 `bullet.getAmmoId().toString() == 'tacz_caliber_ammo:口径/型号'`；整包用 `bullet.getAmmoId().getNamespace() == 'tacz_caliber_ammo'`。
+- 需装 KubeJS（1.20.1 Forge 硬前置 Rhino + Architectury API）。
+
+**Lua vs KubeJS**：想跟弹药数据一起分发、按弹种绑定、走本项目沙箱兜底，用 **Lua**（上一节）；想用 KubeJS 生态、跨 mod 联动、事件里拿枪与射手全套上下文，用 **KubeJS**。
 
 ---
 

@@ -4,9 +4,11 @@ import com.tacz.guns.api.event.common.EntityHurtByGunEvent;
 import com.tacz.guns.api.event.common.EntityKillByGunEvent;
 import com.tacz.guns.api.event.server.AmmoHitBlockEvent;
 import com.tacz.guns.entity.EntityKineticBullet;
+import com.tacz_caliber_ammo.event.BulletCreatedEvent;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
@@ -52,5 +54,26 @@ public final class AmmoEffectEvents {
         Vec3 pos = event.getHitResult().getLocation();
         AmmoEffectDispatcher.dispatch(bullet.getAmmoId(), "on_hit_block",
                 () -> new AmmoEffectScriptAPI(bullet, null, pos, "on_hit_block"));
+    }
+
+    /**
+     * 子弹创建（服务端）：把刚创建的 TacZ 子弹交给「按弹种定制弹道」的纯 Java 逻辑。
+     * 事件由 EntityKineticBulletMixin 在子弹构造末尾发布（mixin 只暴露 gravity + 发本事件，不含弹种特例）；
+     * 弹种判定与重力调整在 FlareEffect.onBulletCreated 里（信号弹降 33% 重力）。
+     */
+    @SubscribeEvent
+    public static void onBulletCreated(BulletCreatedEvent event) {
+        FlareEffect.onBulletCreated(event.getBullet());
+    }
+
+    /**
+     * 服务端每 tick 末：驱动信号弹发光点（飞行时跟随子弹 + 子弹消失后原地驻留发光）。
+     * 见 FlareEffect.serverTick —— 发光与子弹实体解耦，覆盖空中寿命到期与落地命中两种消失。
+     */
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase == TickEvent.Phase.END) {
+            FlareEffect.serverTick();
+        }
     }
 }

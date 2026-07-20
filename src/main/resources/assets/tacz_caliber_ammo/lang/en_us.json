@@ -39,6 +39,7 @@
   "tooltip.tacz_caliber_ammo.pellet_count": "Pellets: %s",
   "tooltip.tacz_caliber_ammo.recoil": "Recoil: %s",
   "tooltip.tacz_caliber_ammo.accuracy": "Accuracy: %s",
+  "tooltip.tacz_caliber_ammo.stack_size": "Stack Size: %s",
   "tooltip.tacz_caliber_ammo.gun_flat_damage": "Flat Damage: %s",
   "tooltip.tacz_caliber_ammo.gun_percent_damage": "Damage Bonus: %s",
   "tooltip.tacz_caliber_ammo.effect.explosion": "Explodes on hit",
@@ -709,5 +710,19 @@
   "ammo.tacz_caliber_ammo.d45_70.shot.abbr": "Shot",
   "ammo.tacz_caliber_ammo.d45_70.shot.abbr.off": "true",
   "ammo.tacz_caliber_ammo.72_5.shg_2": "72.5mm ShG-2",
-  "ammo.tacz_caliber_ammo.72_5.shg_2.abbr": "ShG-2"
+  "ammo.tacz_caliber_ammo.72_5.shg_2.abbr": "ShG-2",
+  "ammo.tacz_caliber_ammo.26_75.acid_green": "26x75mm Acid Green",
+  "ammo.tacz_caliber_ammo.26_75.acid_green.abbr": "AcidG",
+  "ammo.tacz_caliber_ammo.26_75.blue": "26x75mm Blue",
+  "ammo.tacz_caliber_ammo.26_75.blue.abbr": "Blue",
+  "ammo.tacz_caliber_ammo.26_75.green": "26x75mm Green",
+  "ammo.tacz_caliber_ammo.26_75.green.abbr": "Green",
+  "ammo.tacz_caliber_ammo.26_75.new_year": "26x75mm New Year",
+  "ammo.tacz_caliber_ammo.26_75.new_year.abbr": "NewYr",
+  "ammo.tacz_caliber_ammo.26_75.red": "26x75mm Red",
+  "ammo.tacz_caliber_ammo.26_75.red.abbr": "Red",
+  "ammo.tacz_caliber_ammo.26_75.white": "26x75mm White",
+  "ammo.tacz_caliber_ammo.26_75.white.abbr": "White",
+  "ammo.tacz_caliber_ammo.26_75.yellow": "26x75mm Yellow",
+  "ammo.tacz_caliber_ammo.26_75.yellow.abbr": "Yellow"
 }

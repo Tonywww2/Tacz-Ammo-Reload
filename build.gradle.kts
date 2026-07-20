@@ -69,6 +69,11 @@ repositories {
         name = "Architectury"
         content { includeGroup("dev.architectury") }
     }
+    // Modrinth（JEI/Oculus/Embeddium 等开发期测试 mod；用版本字符串定位，比 CurseForge fileId 稳定）
+    maven("https://api.modrinth.com/maven") {
+        name = "Modrinth"
+        content { includeGroup("maven.modrinth") }
+    }
 }
 
 dependencies {
@@ -125,6 +130,16 @@ dependencies {
             "modLocalRuntime"("dev.architectury:architectury-forge:9.1.12") { isTransitive = false }
             "modLocalRuntime"("curse.maven:rhino-416294:6186971")   // rhino-forge-2001.2.3-build.10 (1.20.1 Forge)
             "modLocalRuntime"("curse.maven:kubejs-238086:8020595")  // kubejs-forge-2001.6.5-build.26 (1.20.1 Forge)
+
+            // 兼容性测试 mod（Modrinth，用版本字符串定位）；modLocalRuntime = 仅 dev 运行期、不参与编译、不写入发布依赖。
+            // 只在非 datagen 运行加载。JEI —— 物品/配方查看。
+            "modLocalRuntime"("maven.modrinth:jei:15.20.0.106")           // jei-1.20.1-forge-15.20.0.106
+            // 注意：Oculus（Iris 光影移植）+ 其硬前置 Embeddium（Sodium 移植）在本项目 Forge 47.4.0 下启动即 FATAL 崩溃，故禁用：
+            //   Embeddium 0.3.31（1.20.1-Forge 末版，2024-08）的 features.render.gui.debug.ForgeGuiMixin 注入 ForgeGui#renderLines
+            //   的描述符与 47.4.0 不符（期望 (...CallbackInfo)V，实际多两个 ArrayList 局部变量），抛 InvalidInjectionException。
+            //   1.20.1-Forge 无更新 Embeddium，Oculus 又硬依赖它，故此 Forge 版本下 Oculus 光影链不可用。
+            // "modLocalRuntime"("maven.modrinth:embeddium:0.3.31+mc1.20.1")
+            // "modLocalRuntime"("maven.modrinth:oculus:1.20.1-1.8.0")
         }
     }
 }

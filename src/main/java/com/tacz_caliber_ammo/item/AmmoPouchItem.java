@@ -112,31 +112,74 @@ public class AmmoPouchItem extends Item {
         return sum;
     }
 
+    /** Base stack size: a stackSize=60 ammo uses 1 capacity unit per round (60 rounds = 1 slot). */
+    public static final int BASE_STACK = 60;
+
+    /** Stack size of an ammo type (from TacZ), defaulting to BASE_STACK when unknown. */
+    private static int stackSizeOf(ResourceLocation ammoId) {
+        return TimelessAPI.getCommonAmmoIndex(ammoId).map(index -> index.getStackSize()).orElse(BASE_STACK);
+    }
+
+    /** Capacity units used by {@code count} rounds of {@code ammoId}, stack-size weighted (ceil). */
+    public static int usageOf(ResourceLocation ammoId, int count) {
+        if (ammoId == null || count <= 0) {
+            return 0;
+        }
+        int ss = stackSizeOf(ammoId);
+        if (ss <= 0) {
+            ss = BASE_STACK;
+        }
+        return (count * BASE_STACK + ss - 1) / ss;
+    }
+
+    /** Total capacity units used across all stored ammo (stack-size weighted). */
+    public static int getTotalUsage(ItemStack pouch) {
+        int sum = 0;
+        for (Map.Entry<ResourceLocation, Integer> e : getStore(pouch).entrySet()) {
+            sum += usageOf(e.getKey(), e.getValue());
+        }
+        return sum;
+    }
+
+    /** How many more rounds of {@code ammoId} fit under the weighted capacity. */
+    public int maxDeposit(ItemStack pouch, ResourceLocation ammoId) {
+        if (ammoId == null) {
+            return 0;
+        }
+        int already = getStore(pouch).getOrDefault(ammoId, 0);
+        int otherUsage = getTotalUsage(pouch) - usageOf(ammoId, already);
+        int room = getCapacity() - otherUsage;
+        if (room <= 0) {
+            return 0;
+        }
+        int ss = stackSizeOf(ammoId);
+        if (ss <= 0) {
+            ss = BASE_STACK;
+        }
+        return Math.max(0, (room * ss) / BASE_STACK - already);
+    }
+
     /** 存入 count 发 ammoId，受 {@link #getCapacity()} 限制；返回实际存入数。 */
     public int deposit(ItemStack pouch, ResourceLocation ammoId, int count) {
         if (ammoId == null || count <= 0) {
             return 0;
         }
+        int add = Math.min(count, maxDeposit(pouch, ammoId));
+        if (add <= 0) {
+            return 0;
+        }
         Map<ResourceLocation, Integer> store = getStore(pouch);
-        int total = 0;
-        for (int v : store.values()) {
-            total += v;
+        if (store.containsKey(ammoId)) {
+            store.merge(ammoId, add, Integer::sum);
+        } else {
+            // New ammo type is placed at the FRONT of the store (LinkedHashMap order),
+            // so it is preferred for no-pattern reload and for withdraw.
+            Map<ResourceLocation, Integer> reordered = new LinkedHashMap<>();
+            reordered.put(ammoId, add);
+            reordered.putAll(store);
+            store = reordered;
         }
-        int room = getCapacity() - total;
-        int add = Math.min(count, Math.max(0, room));
-        if (add > 0) {
-            if (store.containsKey(ammoId)) {
-                store.merge(ammoId, add, Integer::sum);
-            } else {
-                // New ammo type is placed at the FRONT of the store (LinkedHashMap order),
-                // so it is preferred for no-pattern reload and for withdraw.
-                Map<ResourceLocation, Integer> reordered = new LinkedHashMap<>();
-                reordered.put(ammoId, add);
-                reordered.putAll(store);
-                store = reordered;
-            }
-            setStore(pouch, store);
-        }
+        setStore(pouch, store);
         return add;
     }
 
@@ -263,7 +306,7 @@ public class AmmoPouchItem extends Item {
         entries.add(new PouchTooltipData.Entry(true, 0,
                 Component.translatable("tooltip.tacz_caliber_ammo.ammo_pouch.capacity_label")
                         .withStyle(ChatFormatting.GRAY)
-                        .append(Component.literal(" " + getTotalCount(pouch)).withStyle(ChatFormatting.WHITE))
+                        .append(Component.literal(" " + getTotalUsage(pouch)).withStyle(ChatFormatting.WHITE))
                         .append(Component.literal("/" + getCapacity()).withStyle(ChatFormatting.GOLD))));
         Map<ResourceLocation, Integer> store = getStore(pouch);
         if (store.isEmpty()) {
@@ -315,11 +358,11 @@ public class AmmoPouchItem extends Item {
             if (ammoId == null || DefaultAssets.EMPTY_AMMO_ID.equals(ammoId)) {
                 return false;
             }
-            int room = getCapacity() - getTotalCount(pouch);
-            if (room <= 0) {
+            int canAdd = maxDeposit(pouch, ammoId);
+            if (canAdd <= 0) {
                 return false;
             }
-            int want = Math.min(slotItem.getCount(), room);
+            int want = Math.min(slotItem.getCount(), canAdd);
             ItemStack taken = slot.safeTake(slotItem.getCount(), want, player);
             int added = this.deposit(pouch, ammoId, taken.getCount());
             if (added < taken.getCount()) {
@@ -406,7 +449,7 @@ public class AmmoPouchItem extends Item {
         if (cap <= 0) {
             return 0;
         }
-        double pct = (double) getTotalCount(pouch) / cap;
+        double pct = (double) getTotalUsage(pouch) / cap;
         return (int) Math.min(1.0 + 12.0 * pct, 13.0);
     }
 
