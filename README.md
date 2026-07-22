@@ -19,6 +19,7 @@
 - [弹药效果与脚本](#弹药效果与脚本-effects)
 - [给模组开发者](#给模组开发者如何兼容本项目)
 - [构建与数据生成](#构建与数据生成)
+- [用 AI Agent 与 Skills 高效开发](#用-ai-agent-与-skills-高效开发)
 - [许可](#许可)
 
 ---
@@ -522,6 +523,36 @@ record Caliber(ResourceLocation id, String name);
 ```
 
 内置内容由 `datagen/CaliberAmmoDataProvider` 从 `docs/tarkov_ammo_stats.csv` 全量生成，产物位于 `src/generated/resources`。
+
+---
+
+## 用 AI Agent 与 Skills 高效开发
+
+本项目在 `skills/` 目录下自带了几个**领域技能 (skill)**，专为支持 skill 的 AI 编码助手（如 GitHub Copilot 的 agent 模式）准备。它们把「本项目特有的机制、数据格式、命令、坑」浓缩成可被 AI 自动检索的知识，让你用自然语言就能高效改动，而不必让 AI 从零猜代码。
+
+### 什么是 skill
+
+每个 skill 是一个 `skills/<名字>/SKILL.md`，由两部分组成：
+
+- **YAML frontmatter**：`name` + `description`。`description` 写明「什么时候该用这个 skill」（触发场景）——AI agent 据此自动判断是否加载它。
+- **正文**：该主题的机制说明、数据 schema、操作步骤、命令片段、常见坑。
+
+当你的请求命中某个 skill 的触发场景时，AI 会先读取对应 `SKILL.md` 拿到本项目的**准确**做法，再动手，而不是凭空猜。
+
+### 内置 skill
+
+| skill | 用于 | 触发示例 |
+| --- | --- | --- |
+| `tacz-caliber-ammo-datapack-config` | 配置口径、弹药弹道档（伤害 / 穿甲 / 爆头 / 后坐力 / 精度 / 初速 / 弹丸数）、枪的伤害修正、命中效果（爆炸 / 点燃 / 击退）、`none` / `universal` 特殊口径 | 「给 M4 加个新口径」「把这发弹的穿甲调到 0.5」「注册一发万用弹」 |
+| `tacz-caliber-ammo-slot-texture` | 给某口径的各弹种加自定义**物品栏图标贴图**，并可关闭图标上的程序化代号叠加 | 「给 5.56 的弹种换成我这套子弹贴图」 |
+
+### 怎么用
+
+1. 用一个支持 skill 的 AI 编码助手打开本仓库；
+2. 用自然语言描述你要做的事（参考上表「触发示例」）；
+3. AI 会自动读取匹配的 `SKILL.md`，按本项目的真实机制帮你改数据 / 代码 / 贴图，并用 `runData`、编译等命令验证。
+
+> 更底层的设计与参考文档在 `docs/`（弹药效果、口径列表、EFT→TacZ 映射、设计与任务分解等）。**skill 讲「怎么做」，`docs/` 讲「为什么这么设计」。**
 
 ---
 

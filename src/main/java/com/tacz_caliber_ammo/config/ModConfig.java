@@ -30,6 +30,7 @@ public final class ModConfig {
     private static final ForgeConfigSpec.DoubleValue MAX_EXPLOSION_RADIUS;
     private static final ForgeConfigSpec.IntValue MAX_EFFECT_SECONDS;
     private static final ForgeConfigSpec.EnumValue<AmmoCodeDisplay> AMMO_CODE_DISPLAY;
+    private static final ForgeConfigSpec.BooleanValue ALWAYS_SHOW_FIRST_ROUND;
 
     static {
         ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
@@ -102,6 +103,11 @@ public final class ModConfig {
                         "ALWAYS: always show a code (abbr if present, else the ammo id's last path segment), ignoring '.off';",
                         "NEVER: never show ammo code text at all, regardless of lang.")
                 .defineEnum("ammoCodeDisplay", AmmoCodeDisplay.DEFAULT);
+        ALWAYS_SHOW_FIRST_ROUND = b
+                .comment("Always show the loaded gun's first-round (chambered / next-to-fire) ammo stats in its tooltip,",
+                        "without needing to hold Shift. When false (default), the stats are collapsed behind Shift",
+                        "and only a hint line is shown.")
+                .define("alwaysShowFirstRoundStats", false);
         b.pop();
         SPEC = b.build();
     }
@@ -223,6 +229,15 @@ public final class ModConfig {
             return AMMO_CODE_DISPLAY.get();
         } catch (IllegalStateException notLoaded) {
             return AmmoCodeDisplay.DEFAULT;
+        }
+    }
+
+    /** 是否始终显示枪械 tooltip 里首发子弹（膛内/下一发）的属性，无需按 Shift。未加载时默认 false。 */
+    public static boolean alwaysShowFirstRoundStats() {
+        try {
+            return ALWAYS_SHOW_FIRST_ROUND.get();
+        } catch (IllegalStateException notLoaded) {
+            return false;
         }
     }
 }

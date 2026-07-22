@@ -6,12 +6,16 @@ import java.util.Locale;
 
 import com.tacz.guns.api.item.IAmmo;
 import com.tacz.guns.api.item.IAmmoBox;
+import com.tacz.guns.api.item.IGun;
 import com.tacz_caliber_ammo.caliber.AmmoEffects;
 import com.tacz_caliber_ammo.caliber.AmmoProfile;
 import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.caliber.GunDamageModifier;
+import com.tacz_caliber_ammo.config.ModConfig;
+import com.tacz_caliber_ammo.nbt.LoadedAmmoSequence;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -26,7 +30,7 @@ public final class TooltipHandler {
     private TooltipHandler() {
     }
 
-    /** 由 ItemTooltipEvent 调用：按物品类型追加口径/弹道信息。枪的口径已移到弹匣表格上方(ClientGunTooltipMixin)，此处只处理弹药/弹药盒。 */
+    /** 由 ItemTooltipEvent 调用：弹药/弹药盒追加口径/弹道；枪按住 Alt 追加膛内子弹数据（枪口径已由 ClientGunTooltipMixin 画在弹匣表上方）。 */
     public static void appendTooltip(ItemStack stack, List<Component> lines) {
         if (stack.isEmpty()) {
             return;
@@ -35,6 +39,8 @@ public final class TooltipHandler {
             appendAmmo(ammo.getAmmoId(stack), lines, stack.getMaxStackSize());
         } else if (stack.getItem() instanceof IAmmoBox box) {
             appendAmmo(box.getAmmoId(stack), lines, 0);
+        } else if (stack.getItem() instanceof IGun) {
+            appendGunChamberedAmmo(stack, lines);
         }
     }
 
@@ -98,14 +104,15 @@ public final class TooltipHandler {
     }
 
     /**
-     * 弹药/弹药盒：显示口径 + 弹道档（若已配置）；未配置显示"未配置口径"。标签深灰、具体数值白色；
-     * 插到 index 1（物品名下方第一行，与枪口径同在首行位置）。
+     * 弹种数据行（口径 + 弹道档 + 特殊效果）：传入子弹 id 返回可直接追加到 tooltip 的 Component 列表。
+     * 未配置口径返回"未配置口径"单行；ammoId==null 返回空表。不含堆叠数量（那是物品属性，见 {@link #appendAmmo}）。
+     * 供弹药物品 tooltip 与枪 Alt 展开膛内子弹复用。
      */
-    private static void appendAmmo(ResourceLocation ammoId, List<Component> lines, int stackSize) {
-        if (ammoId == null) {
-            return;
-        }
+    public static List<Component> ammoDataLines(ResourceLocation ammoId) {
         List<Component> out = new ArrayList<>();
+        if (ammoId == null) {
+            return out;
+        }
         ResourceLocation caliber = CaliberManager.getAmmoCaliber(ammoId);
         if (caliber == null || CaliberManager.NONE.equals(caliber)) {
             out.add(noCaliberLine());
@@ -134,10 +141,48 @@ public final class TooltipHandler {
                 appendEffects(p.effects(), out);
             }
         }
+        return out;
+    }
+
+    /**
+     * 弹药/弹药盒：口径 + 弹道档（{@link #ammoDataLines}）+ 堆叠数量；插到 index 1（物品名下方第一行）。
+     */
+    private static void appendAmmo(ResourceLocation ammoId, List<Component> lines, int stackSize) {
+        if (ammoId == null) {
+            return;
+        }
+        List<Component> out = ammoDataLines(ammoId);
         if (stackSize > 0) {
             out.add(valueLine("tooltip.tacz_caliber_ammo.stack_size", Integer.toString(stackSize)));
         }
         lines.addAll(Math.min(1, lines.size()), out);
+    }
+
+    /**
+     * 枪 tooltip：按住 Alt 展开当前膛内子弹（无膛内弹则弹匣队首/第一发）的数据。
+     * 膛内弹种取自我方 {@link LoadedAmmoSequence#peekBarrelAmmo}，无则 {@link LoadedAmmoSequence#peekHead}。
+     * 空枪（都无）不显示；未按 Alt 时只显示一行灰字提示。数据行复用 {@link #ammoDataLines}。
+     */
+    private static void appendGunChamberedAmmo(ItemStack gun, List<Component> lines) {
+        boolean chambered = true;
+        ResourceLocation ammoId = LoadedAmmoSequence.peekBarrelAmmo(gun);
+        if (ammoId == null) {
+            ammoId = LoadedAmmoSequence.peekHead(gun);
+            chambered = false;
+        }
+        if (ammoId == null) {
+            return;
+        }
+        if (!ModConfig.alwaysShowFirstRoundStats() && !Screen.hasShiftDown()) {
+            lines.add(Component.translatable("tooltip.tacz_caliber_ammo.ammo_data_hint")
+                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+            return;
+        }
+        String headerKey = chambered
+                ? "tooltip.tacz_caliber_ammo.chambered_round"
+                : "tooltip.tacz_caliber_ammo.next_round";
+        lines.add(Component.translatable(headerKey).withStyle(ChatFormatting.GRAY, ChatFormatting.BOLD));
+        lines.addAll(ammoDataLines(ammoId));
     }
 
     /** 弹药特殊效果指示（命中爆炸/点燃/额外击退/自定义脚本）：每项一行金色，便于识别特种弹。 */
