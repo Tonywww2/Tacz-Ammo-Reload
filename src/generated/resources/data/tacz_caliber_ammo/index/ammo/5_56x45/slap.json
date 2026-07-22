@@ -1,0 +1,16 @@
+{
+  "accuracy": -9,
+  "armorIgnore": 0.85,
+  "ballisticCoefficient": 0.19,
+  "baseDamage": 5.5,
+  "caliber": "5_56x45",
+  "display": "tacz_caliber_ammo:5_56x45_slap_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.5_56x45.slap",
+  "pelletCount": 1,
+  "pierce": 2,
+  "recoil": 8,
+  "sort": 250,
+  "speed": 1100,
+  "stack_size": 40
+}
