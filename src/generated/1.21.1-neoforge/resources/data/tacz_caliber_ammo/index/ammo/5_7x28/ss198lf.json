@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.15,
+  "ballisticCoefficient": 0.233,
+  "baseDamage": 10.0,
+  "caliber": "5_7x28",
+  "display": "tacz_caliber_ammo:5_7x28_ss198lf_display",
+  "headShotMultiplier": 1.8,
+  "name": "ammo.tacz_caliber_ammo.5_7x28.ss198lf",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 0,
+  "sort": 71,
+  "speed": 792,
+  "stack_size": 60
+}

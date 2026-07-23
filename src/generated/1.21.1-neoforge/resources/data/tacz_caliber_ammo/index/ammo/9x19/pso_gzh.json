@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.05,
+  "ballisticCoefficient": 0.131,
+  "baseDamage": 8.5,
+  "caliber": "9x19",
+  "display": "tacz_caliber_ammo:9x19_pso_gzh_display",
+  "headShotMultiplier": 1.45,
+  "name": "ammo.tacz_caliber_ammo.9x19.pso_gzh",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 0,
+  "sort": 39,
+  "speed": 340,
+  "stack_size": 60
+}

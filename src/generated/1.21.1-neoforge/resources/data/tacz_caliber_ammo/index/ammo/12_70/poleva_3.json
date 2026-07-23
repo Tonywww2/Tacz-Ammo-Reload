@@ -1,0 +1,16 @@
+{
+  "accuracy": 110,
+  "armorIgnore": 0.15,
+  "ballisticCoefficient": 0.116,
+  "baseDamage": 19.5,
+  "caliber": "12_70",
+  "display": "tacz_caliber_ammo:12_70_poleva_3_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.12_70.poleva_3",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": -15,
+  "sort": 166,
+  "speed": 410,
+  "stack_size": 20
+}

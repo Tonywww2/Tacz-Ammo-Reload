@@ -1,0 +1,5 @@
+{
+  "model": "tacz:ammo/762x39",
+  "slot": "tacz_caliber_ammo:ammo/slot/7_62x39/mai_ap",
+  "texture": "tacz:ammo/uv/762x39"
+}

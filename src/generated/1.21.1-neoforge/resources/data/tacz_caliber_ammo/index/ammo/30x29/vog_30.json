@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.1,
+  "ballisticCoefficient": 0.1,
+  "baseDamage": 34.0,
+  "caliber": "30x29",
+  "display": "tacz_caliber_ammo:30x29_display",
+  "headShotMultiplier": 1.45,
+  "name": "ammo.tacz_caliber_ammo.30x29.vog_30",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 0,
+  "sort": 239,
+  "speed": 185,
+  "stack_size": 6
+}

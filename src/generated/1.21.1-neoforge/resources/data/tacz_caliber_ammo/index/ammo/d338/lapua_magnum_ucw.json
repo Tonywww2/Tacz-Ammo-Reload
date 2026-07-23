@@ -1,0 +1,16 @@
+{
+  "accuracy": -5,
+  "armorIgnore": 0.4,
+  "ballisticCoefficient": 0.48,
+  "baseDamage": 20.0,
+  "caliber": "d338",
+  "display": "tacz_caliber_ammo:d338_lapua_magnum_ucw_display",
+  "headShotMultiplier": 1.65,
+  "name": "ammo.tacz_caliber_ammo.d338.lapua_magnum_ucw",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 0,
+  "sort": 137,
+  "speed": 849,
+  "stack_size": 40
+}

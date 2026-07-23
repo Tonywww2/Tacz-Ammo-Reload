@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.1,
+  "ballisticCoefficient": 0.114,
+  "baseDamage": 14.0,
+  "caliber": "d45_acp",
+  "display": "tacz_caliber_ammo:d45_acp_hydra_shok_display",
+  "headShotMultiplier": 1.6,
+  "name": "ammo.tacz_caliber_ammo.d45_acp.hydra_shok",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 0,
+  "sort": 56,
+  "speed": 274,
+  "stack_size": 60
+}

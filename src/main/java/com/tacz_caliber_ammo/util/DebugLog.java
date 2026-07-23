@@ -1,8 +1,7 @@
 package com.tacz_caliber_ammo.util;
 
 import com.mojang.logging.LogUtils;
-
-import net.minecraftforge.fml.loading.FMLEnvironment;
+import com.tacz_caliber_ammo.platform.PlatformEnvironment;
 
 import org.slf4j.Logger;
 
@@ -15,7 +14,7 @@ public final class DebugLog {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     /** 仅开发环境为 true。 */
-    public static final boolean ENABLED = !FMLEnvironment.production;
+    public static final boolean ENABLED = !PlatformEnvironment.isProduction();
 
     private DebugLog() {
     }

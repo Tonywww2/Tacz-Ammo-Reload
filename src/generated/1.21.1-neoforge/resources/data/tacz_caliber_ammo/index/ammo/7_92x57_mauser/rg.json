@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.6,
+  "ballisticCoefficient": 0.35,
+  "baseDamage": 11.0,
+  "caliber": "7_92x57_mauser",
+  "display": "tacz_caliber_ammo:7_92x57_mauser_rg_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.7_92x57_mauser.rg",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 6,
+  "sort": 252,
+  "speed": 765,
+  "stack_size": 40
+}

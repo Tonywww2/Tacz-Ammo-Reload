@@ -1,0 +1,5 @@
+{
+  "model": "tacz:ammo/556x45",
+  "slot": "tacz_caliber_ammo:ammo/slot/5_56x45/m855",
+  "texture": "tacz:ammo/uv/556x45"
+}

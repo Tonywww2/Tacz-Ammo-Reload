@@ -9,6 +9,12 @@ val mcVersion = property("vers.mcVersion").toString()
 // 预先取出 mod.id（Project 作用域）：runConfigs 的 lambda 里 property(String) 会命中
 // RunConfigSettings.property 而非 Project.property，故在外层取好。
 val modId = property("mod.id").toString()
+val nodeName = stonecutter.current.project
+val generatedResources = if (loader == "forge") {
+    rootProject.file("src/generated/resources")
+} else {
+    rootProject.file("src/generated/$nodeName/resources")
+}
 
 // runData（Forge datagen）会走完整 mod-loading、加载 classpath 上所有 mod；KubeJS 等重型测试 mod 会拉起
 // 非 daemon 后台线程，使 datagen 跑完（All providers took…）后 JVM 不退出，runData 卡住不自动结束。
@@ -32,24 +38,27 @@ loom {
     // Forge 开发环境需显式注册 mixin 配置——Loom 的 runServer/runClient 不会自动识别
     // mods.toml 的 [[mixins]]，缺了这行 mixin 在 dev 下静默不加载（NeoForge 原生识别）。
     if (loader == "forge") {
-        forge { mixinConfig("${property("mod.id")}.mixins.json") }
-        // Forge datagen 运行配置（GatherDataEvent）。输出到独立的 src/generated/resources
-        // （与手写 src/main/resources 分开！Forge datagen 会修剪 --output 下未生成的文件）。
-        runConfigs.create("data") {
-            data()
-            programArgs(
-                "--mod", modId,
-                "--all",
-                "--output", rootProject.file("src/generated/resources").absolutePath,
-                "--existing", rootProject.file("src/main/resources").absolutePath,
-            )
+        forge {
+            mixinConfig("${property("mod.id")}.mixins.json")
+            mixinConfig("${property("mod.id")}.platform.mixins.json")
         }
     }
-    // 只给活动节点生成 IDE 运行配置，run 目录集中到根
-    if (stonecutter.current.isActive) {
-        runConfigs.all {
+    // 每个节点使用独立 datagen 输出，避免 HashCache 互删且允许 1.20/1.21 JSON 方言并存。
+    runConfigs.create("data") {
+        data()
+        programArgs(
+            "--mod", modId,
+            "--all",
+            "--output", generatedResources.absolutePath,
+            "--existing", rootProject.file("src/main/resources").absolutePath,
+        )
+    }
+    // 两个 loader 使用独立运行目录，禁止 NeoForge 读取 Forge 1.20.1 的旧世界/配置。
+    runConfigs.all {
+        runDir(if (loader == "neoforge") "../../run-neoforge-1.21.1" else "../../run")
+        // 只给活动节点生成 IDE 运行配置。
+        if (stonecutter.current.isActive) {
             ideConfigGenerated(true)
-            runDir("../../run")
         }
     }
 }
@@ -79,16 +88,16 @@ repositories {
 dependencies {
     minecraft("com.mojang:minecraft:$mcVersion")
     mappings(loom.officialMojangMappings())
+    // CurseForge 页面给出的普通 implementation 写法面向 NeoGradle/ForgeGradle；
+    // Architectury Loom 必须用 modImplementation 才会把 mod 依赖重映射到开发命名空间。
+    "modImplementation"(property("vers.deps.tacz").toString())
 
     if (loader == "neoforge") {
         "neoForge"("net.neoforged:neoforge:${property("vers.deps.fml")}")
+        // TacZ 1.21.1 JiJ 的客户端渲染 mod，Loom dev 不展开；从 fileId 8167430 原包精确提取。
+        "modRuntimeOnly"(rootProject.files("libs/simplebedrockmodel-2.2.1-neoforge+mc1.21.1.jar"))
     } else {
         "forge"("net.minecraftforge:forge:$mcVersion-${property("vers.deps.fml")}")
-
-        // TacZ（Timeless and Classics Zero）——本 mod 的前置/编译依赖。
-        // 用户给的 ForgeGradle 写法 implementation fg.deobf(...) 在 Architectury Loom 下等价于
-        // modImplementation（Loom 自动反混淆/重映射 mod 依赖）；curse.maven 坐标需上面的 CurseMaven 仓库。
-        "modImplementation"("curse.maven:timeless-and-classics-zero-1028108:8141310")
 
         // MixinExtras：必须用 -common（类直接在 jar 内）。-forge 变体把类 JiJ 内嵌在
         // META-INF/jars/MixinExtras-*.jar，Loom dev 不解压 → com.llamalad7...Operation 找不到。
@@ -98,20 +107,9 @@ dependencies {
         // 否则 TacZ 构造/加载期 NoClassDefFoundError（luaj / bcel / commons-math3）。参见 skill ref 11。
         // 注意：本共享脚本应用于节点工程（versions/1.20.1-forge），相对 files("libs/..") 会指向
         // versions/1.20.1-forge/libs（不存在）→ jar 不进 classpath。必须用 rootProject.files 指向根 libs/。
-        "forgeRuntimeLibrary"(rootProject.files("libs/luaj-core-3.0.8-figura.jar"))
-        "forgeRuntimeLibrary"(rootProject.files("libs/luaj-jse-3.0.8-figura.jar"))
-        "forgeRuntimeLibrary"(rootProject.files("libs/bcel-6.6.1.jar"))
-        "forgeRuntimeLibrary"(rootProject.files("libs/commons-math3-3.6.1.jar"))
-
-        // luaj 编译期可见（运行期已由 TacZ JiJ + 上面的 forgeRuntimeLibrary 提供，不打包）——
-        // 为在 Java 里引用 org.luaj.vm2.* 以及 TacZ ScriptManager.getScript 返回的 LuaTable（弹药效果 Lua 脚本系统）。
-        "compileOnly"(rootProject.files("libs/luaj-core-3.0.8-figura.jar"))
-        "compileOnly"(rootProject.files("libs/luaj-jse-3.0.8-figura.jar"))
-
         // simplebedrockmodel 是 mod（TacZ 枪械客户端渲染依赖），需 Loom 重映射并按 mod 加载；
         // 它内嵌的 mae 是纯动画数学库（同样从 JiJ 抽到 libs/ 补齐）。
         "modRuntimeOnly"(rootProject.files("libs/simplebedrockmodel-2.2.2-forge+mc1.20.1.jar"))
-        "forgeRuntimeLibrary"(rootProject.files("libs/mae-1.1.2.jar"))
 
         // 开发期测试辅助 mod：仅本地 dev 运行期加载（modLocalRuntime = 不参与编译、不写入发布依赖，
         // 下游使用者无需安装）。用于验证本 mod 的弹药/口径伤害：
@@ -142,6 +140,17 @@ dependencies {
             // "modLocalRuntime"("maven.modrinth:oculus:1.20.1-1.8.0")
         }
     }
+
+    // 本 mod 的 Lua 效果源码直接引用 LuaJ。两版 TacZ 都内嵌相同版本；compileOnly 只提供编译类型。
+    "compileOnly"(rootProject.files("libs/luaj-core-3.0.8-figura.jar"))
+    "compileOnly"(rootProject.files("libs/luaj-jse-3.0.8-figura.jar"))
+
+    // Loom dev 不展开 TacZ 的 JiJ；这些纯 Java 库在 Forge/NeoForge 两版分发包中版本相同。
+    "forgeRuntimeLibrary"(rootProject.files("libs/luaj-core-3.0.8-figura.jar"))
+    "forgeRuntimeLibrary"(rootProject.files("libs/luaj-jse-3.0.8-figura.jar"))
+    "forgeRuntimeLibrary"(rootProject.files("libs/bcel-6.6.1.jar"))
+    "forgeRuntimeLibrary"(rootProject.files("libs/commons-math3-3.6.1.jar"))
+    "forgeRuntimeLibrary"(rootProject.files("libs/mae-1.1.2.jar"))
 }
 
 tasks {
@@ -169,8 +178,14 @@ tasks {
         // 再按当前加载器排除另一个，避免多余元数据进包。
         filesMatching(listOf("META-INF/mods.toml", "META-INF/neoforge.mods.toml")) { expand(props) }
         exclude(if (loader == "neoforge") "META-INF/mods.toml" else "META-INF/neoforge.mods.toml")
+        if (loader == "neoforge") {
+            exclude("pack.mcmeta")
+        }
     }
-    withType<JavaCompile> { options.release = javaVersion }
+    withType<JavaCompile> {
+        options.release = javaVersion
+        options.encoding = "UTF-8"
+    }
 }
 
 java {
@@ -178,9 +193,8 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(javaVersion)
 }
 
-// 将 datagen 生成的资源（根 src/generated/resources）并入主源集，随构建打包。
-// 生成目录与手写 src/main/resources 分开；两者不得有同名文件（否则 processResources 重复）。
-sourceSets["main"].resources.srcDir(rootProject.file("src/generated/resources"))
+// 每个节点只打包自己的 datagen 资源。
+sourceSets["main"].resources.srcDir(generatedResources)
 
 // ---------------------------------------------------------------------------------------------------
 // CurseForge publishing (me.modmuss50.mod-publish-plugin). Uploads this node's remapped jar;

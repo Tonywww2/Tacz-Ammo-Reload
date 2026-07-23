@@ -1,0 +1,385 @@
+{
+  "filter": "tacz:default",
+  "tabs": [
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:12_70/ap_20\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:12_70",
+      "name": "12/70"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:12_7x108/b_32\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:12_7x108",
+      "name": "12.7x108mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:12_7x55/ps12b\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:12_7x55",
+      "name": "12.7x55mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:20_70/tss\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:20_70",
+      "name": "20/70"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:23x75_r/10\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:23x75_r",
+      "name": "23x75R"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:26_75/acid_green\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:26_75",
+      "name": "26x75mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:30x29/vog_30\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:30x29",
+      "name": "30x29mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:40_vog_25/vog_25\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:40_vog_25",
+      "name": "40mm VOG-25"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:40x46/m576\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:40x46",
+      "name": "40x46mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:4_6x30/ap_sx\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:4_6x30",
+      "name": "4.6x30mm HK"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:5_45x39/7n59\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:5_45x39",
+      "name": "5.45x39mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:5_56x45/ssa_ap\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:5_56x45",
+      "name": "5.56x45mm NATO"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:5_7x28/ss190\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:5_7x28",
+      "name": "5.7x28mm FN"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:5_8x42/dbp10\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:5_8x42",
+      "name": "5.8x42mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:6_8x51/sig_hybrid\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:6_8x51",
+      "name": "6.8x51mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:72_5/shg_2\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:72_5",
+      "name": "72.5mm Rocket"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:7_62x25/m995\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:7_62x25",
+      "name": "7.62x25mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:7_62x39/mai_ap\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:7_62x39",
+      "name": "7.62x39mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:7_62x51/m993\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:7_62x51",
+      "name": "7.62x51mm NATO"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:7_62x54r/7_62x54r_7n37\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:7_62x54r",
+      "name": "7.62x54R"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:7_92x57_mauser/ss\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:7_92x57_mauser",
+      "name": "7.92x57mm Mauser"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:9_3x64/7n33\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:9_3x64",
+      "name": "9.3x64mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:9x18/pm_pbm\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:9x18",
+      "name": "9x18mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:9x19/7n31\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:9x19",
+      "name": "9x19mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:9x21/7n42\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:9x21",
+      "name": "9x21mm Gyurza"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:9x39/bp\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:9x39",
+      "name": "9x39mm"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d22_wmr/jhp\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d22_wmr",
+      "name": ".22 WMR"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d300_blk/ap\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d300_blk",
+      "name": ".300 Blackout"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d308_marlin/me\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d308_marlin",
+      "name": ".308 Marlin Express"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d30_06/m2_ball\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d30_06",
+      "name": ".30-06 Springfield"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d338/lapua_magnum_ap\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d338",
+      "name": ".338"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d357/magnum_fmj\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d357",
+      "name": ".357"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d366_tkm/ap\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d366_tkm",
+      "name": ".366 TKM"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d45_70/sp\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d45_70",
+      "name": ".45-70 Government"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d45_acp/ap\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d45_acp",
+      "name": ".45 ACP"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d500_magnum/sp\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d500_magnum",
+      "name": ".500 S&W Magnum"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d50_ae/ae_fmj\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d50_ae",
+      "name": ".50 AE"
+    },
+    {
+      "icon": {
+        "components": {
+          "minecraft:custom_data": "{AmmoId: \"tacz_caliber_ammo:d50_bmg/bmg_m903_slap\"}"
+        },
+        "id": "tacz:ammo"
+      },
+      "id": "tacz_caliber_ammo:d50_bmg",
+      "name": ".50 BMG"
+    }
+  ]
+}

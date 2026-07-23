@@ -1,0 +1,23 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 16,
+      "item": {
+        "tag": "c:ingots/copper"
+      }
+    },
+    {
+      "count": 2,
+      "item": {
+        "tag": "c:gunpowders"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 48,
+    "group": "tacz_caliber_ammo:4_6x30",
+    "id": "tacz_caliber_ammo:4_6x30/subsonic_sx"
+  }
+}

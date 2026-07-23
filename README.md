@@ -1,7 +1,7 @@
 # TacZ: Caliber Ammo / TacZ：火力重塑
 
 > 为 **Timeless and Classics Zero (TacZ)** 打造的「口径 (Caliber)」弹药系统。
-> Minecraft 1.20.1 · Forge 47+ · Java 17 · 依赖 TacZ
+> Minecraft 1.20.1 Forge / 1.21.1 NeoForge · 依赖对应版本 TacZ
 
 `TacZ Caliber Ammo` 把 TacZ 的伤害归属从「枪决定一切」改成「**口径 + 弹种**」：
 枪只负责认它能吃哪种口径，真正的伤害、护甲穿透、爆头倍率、后坐力、精度、初速、弹丸数都写在**弹药**上。
@@ -42,20 +42,19 @@
 内容层完全通过**数据包**驱动（弹药 / 口径 / 配方 JSON），逻辑层通过 **Mixin** 挂接 TacZ，
 本 mod **不新增任何物品**——弹药仍然是 TacZ 原生的弹药物品（靠 NBT 的 `ammoId` 区分弹种）。
 
-当前内置内容规模：**37 个口径 / 207 个弹种 / 207 个制枪台配方**，覆盖 TacZ 全部 54 把原版枪。
+当前内置内容规模：**38 个口径 / 244 个弹种 / 243 个制枪台配方**，覆盖 TacZ 全部 54 把原版枪。
 
 ---
 
 ## 环境与依赖
 
-| 项目 | 版本 |
-| --- | --- |
-| Minecraft | 1.20.1 |
-| 加载器 | Forge `[47,)` |
-| Java | 17 |
-| 前置 | Timeless and Classics Zero (TacZ) |
+| Minecraft | 加载器 | Java | TacZ |
+| --- | --- | --- | --- |
+| 1.20.1 | Forge `[47,)` | 17 | 对应 1.20.1 Forge 版 |
+| 1.21.1 | NeoForge `21.1.233` | 21 | `1.1.8-hotfix-r1`（CurseForge file `8167430`） |
 
-> 工程使用 **Stonecutter + Architectury Loom** 组织，主类保留了多加载器占位；当前仅激活 `1.20.1-forge` 节点。
+> 工程使用 **Stonecutter + Architectury Loom** 组织。加载器与版本差异集中在
+> `com.tacz_caliber_ammo.platform` 包，并使用 Stonecutter 条件注释；默认活动节点仍为 `1.20.1-forge`。
 
 ---
 
@@ -63,8 +62,8 @@
 
 ### 安装
 
-1. 安装 Forge 1.20.1。
-2. 把 **TacZ** 与本 mod 的 jar 一起放进 `mods/`。
+1. 安装 Forge 1.20.1 或 NeoForge 1.21.1，并选择本 mod 对应版本的 jar。
+2. 把对应 Minecraft/加载器版本的 **TacZ** 与本 mod 一起放进 `mods/`。
 3. 启动即可，无需额外配置。
 
 ### 你会注意到的变化
@@ -511,18 +510,27 @@ record Caliber(ResourceLocation id, String name);
 ## 构建与数据生成
 
 ```powershell
-# 编译
+# 构建两个发布版本
 ./gradlew :1.20.1-forge:build
+./gradlew :1.21.1-neoforge:build
 
 # 生成内置数据包（口径 / 弹药 index / 配方，源数据为 docs/tarkov_ammo_stats.csv）
 ./gradlew :1.20.1-forge:runData
+./gradlew :1.21.1-neoforge:runData
 
 # 本地起服 / 起客户端冒烟测试
 ./gradlew :1.20.1-forge:runServer
 ./gradlew :1.20.1-forge:runClient
+./gradlew :1.21.1-neoforge:runServer
+./gradlew :1.21.1-neoforge:runClient
 ```
 
-内置内容由 `datagen/CaliberAmmoDataProvider` 从 `docs/tarkov_ammo_stats.csv` 全量生成，产物位于 `src/generated/resources`。
+内置内容由 `datagen/CaliberAmmoDataProvider` 从 `docs/tarkov_ammo_stats.csv` 全量生成：
+
+- Forge 1.20.1：`src/generated/resources`（`recipes/`、`forge:` 标签、NBT 工作台图标）。
+- NeoForge 1.21.1：`src/generated/1.21.1-neoforge/resources`（`recipe/`、`c:` 标签、Data Components 工作台图标）。
+
+两个开发运行目录彼此隔离：Forge 使用 `run/`，NeoForge 使用 `run-neoforge-1.21.1/`；不要直接复用跨版本世界或物品数据。
 
 ---
 

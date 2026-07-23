@@ -1,0 +1,23 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 12,
+      "item": {
+        "tag": "c:ingots/copper"
+      }
+    },
+    {
+      "count": 2,
+      "item": {
+        "tag": "c:gunpowders"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 45,
+    "group": "tacz_caliber_ammo:d45_acp",
+    "id": "tacz_caliber_ammo:d45_acp/hydra_shok"
+  }
+}

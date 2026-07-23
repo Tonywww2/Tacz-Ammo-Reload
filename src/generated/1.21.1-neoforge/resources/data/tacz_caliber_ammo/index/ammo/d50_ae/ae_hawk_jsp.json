@@ -1,0 +1,16 @@
+{
+  "accuracy": -5,
+  "armorIgnore": 0.3,
+  "ballisticCoefficient": 0.166,
+  "baseDamage": 17.0,
+  "caliber": "d50_ae",
+  "display": "tacz_caliber_ammo:d50_ae_ae_hawk_jsp_display",
+  "headShotMultiplier": 1.5,
+  "name": "ammo.tacz_caliber_ammo.d50_ae.ae_hawk_jsp",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 2,
+  "sort": 60,
+  "speed": 465,
+  "stack_size": 60
+}

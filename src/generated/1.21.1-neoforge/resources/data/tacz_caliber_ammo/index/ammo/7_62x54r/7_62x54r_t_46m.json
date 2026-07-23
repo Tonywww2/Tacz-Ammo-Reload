@@ -1,0 +1,16 @@
+{
+  "accuracy": -1,
+  "armorIgnore": 0.5,
+  "ballisticCoefficient": 0.289,
+  "baseDamage": 11.5,
+  "caliber": "7_62x54r",
+  "display": "tacz_caliber_ammo:7_62x54r_7_62x54r_t_46m_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.7_62x54r.7_62x54r_t_46m",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": -5,
+  "sort": 131,
+  "speed": 800,
+  "stack_size": 40
+}

@@ -1,0 +1,23 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 14,
+      "item": {
+        "tag": "c:ingots/copper"
+      }
+    },
+    {
+      "count": 2,
+      "item": {
+        "tag": "c:gunpowders"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 45,
+    "group": "tacz_caliber_ammo:d50_ae",
+    "id": "tacz_caliber_ammo:d50_ae/ae_hawk_jsp"
+  }
+}

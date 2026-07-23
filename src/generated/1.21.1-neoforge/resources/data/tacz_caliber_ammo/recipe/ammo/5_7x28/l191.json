@@ -1,0 +1,23 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 18,
+      "item": {
+        "tag": "c:ingots/copper"
+      }
+    },
+    {
+      "count": 2,
+      "item": {
+        "tag": "c:gunpowders"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 48,
+    "group": "tacz_caliber_ammo:5_7x28",
+    "id": "tacz_caliber_ammo:5_7x28/l191"
+  }
+}

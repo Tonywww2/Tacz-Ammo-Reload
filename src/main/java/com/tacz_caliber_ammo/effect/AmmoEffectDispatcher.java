@@ -5,7 +5,7 @@ import java.util.function.Supplier;
 import com.mojang.logging.LogUtils;
 import com.tacz_caliber_ammo.caliber.AmmoProfile;
 import com.tacz_caliber_ammo.caliber.CaliberManager;
-import com.tacz_caliber_ammo.config.ModConfig;
+import com.tacz_caliber_ammo.platform.config.ModConfig;
 
 import org.luaj.vm2.LuaTable;
 import org.luaj.vm2.LuaValue;

@@ -23,6 +23,7 @@ import com.google.common.hash.Hashing;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
+import com.tacz_caliber_ammo.platform.GenerationDialect;
 
 import net.minecraft.data.CachedOutput;
 import net.minecraft.data.DataProvider;
@@ -152,8 +153,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
     @Override
     public CompletableFuture<?> run(CachedOutput cache) {
         Path root = output.getOutputFolder();
-        // src/generated/resources -> src/generated -> src -> 项目根
-        Path projectRoot = root.getParent().getParent().getParent();
+        Path projectRoot = findProjectRoot(root);
         Path csvPath = projectRoot.resolve("docs").resolve("tarkov_ammo_stats.csv");
         List<String> lines;
         try {
@@ -235,7 +235,8 @@ public class CaliberAmmoDataProvider implements DataProvider {
             // 配方（gun smith table）：参考 TacZ 原版弹药配方（铜+火药），高穿弹耗更多铜、AP 额外加铁芯
             JsonObject recipe = buildRecipe(calId, model, c[iCat], pen);
             futures.add(DataProvider.saveStable(cache, recipe,
-                    root.resolve("data/" + NS + "/recipes/ammo/" + calId + "/" + model + ".json")));
+                    root.resolve("data/" + NS + "/" + GenerationDialect.recipeDirectory()
+                        + "/ammo/" + calId + "/" + model + ".json")));
             // 自定义 slot 贴图的弹种：生成 per-变种 display（复用原型 3D 几何/uv，slot 指向各自贴图）
             if (customSlot) {
                 JsonObject vDisp = new JsonObject();
@@ -429,28 +430,27 @@ public class CaliberAmmoDataProvider implements DataProvider {
         int baseCu;
         int baseGp;
         int count;
-        String group;
         switch (category == null ? "" : category.trim()) {
             case "手枪":
-                baseCu = 10; baseGp = 2; count = 45; group = "pd_cartridges"; break;
+                baseCu = 10; baseGp = 2; count = 45; break;
             case "PDW":
-                baseCu = 12; baseGp = 2; count = 48; group = "pd_cartridges"; break;
+                baseCu = 12; baseGp = 2; count = 48; break;
             case "步枪":
-                baseCu = 15; baseGp = 3; count = 40; group = "ifp_rifle_cartridges"; break;
+                baseCu = 15; baseGp = 3; count = 40; break;
             case "霰弹枪":
-                baseCu = 15; baseGp = 5; count = 18; group = "shotgun_shells"; break;
+                baseCu = 15; baseGp = 5; count = 18; break;
             case "榴弹":
-                baseCu = 12; baseGp = 8; count = 6; group = "explosives"; break;
+                baseCu = 12; baseGp = 8; count = 6; break;
             default: // 信号弹等
-                baseCu = 10; baseGp = 2; count = 24; group = "pd_cartridges"; break;
+                baseCu = 10; baseGp = 2; count = 24; break;
         }
         int copper = baseCu + (int) Math.round(pen / 6.0);                    // 高穿 -> 更多铜
         int ironNugget = pen >= 40 ? (int) Math.round((pen - 30) / 6.0) : 0;  // AP -> 加铁芯
         JsonArray materials = new JsonArray();
-        materials.add(material("forge:ingots/copper", Math.max(1, copper)));
-        materials.add(material("forge:gunpowder", Math.max(1, baseGp)));
+        materials.add(material(GenerationDialect.copperIngotTag(), Math.max(1, copper)));
+        materials.add(material(GenerationDialect.gunpowderTag(), Math.max(1, baseGp)));
         if (ironNugget > 0) {
-            materials.add(material("forge:nuggets/iron", ironNugget));
+            materials.add(material(GenerationDialect.ironNuggetTag(), ironNugget));
         }
         JsonObject result = new JsonObject();
         result.addProperty("type", "ammo");
@@ -498,13 +498,20 @@ public class CaliberAmmoDataProvider implements DataProvider {
         JsonObject t = new JsonObject();
         t.addProperty("id", id);
         t.addProperty("name", name);
-        JsonObject icon = new JsonObject();
-        icon.addProperty("item", "tacz:ammo");
-        JsonObject nbt = new JsonObject();
-        nbt.addProperty("AmmoId", ammoId);
-        icon.add("nbt", nbt);
-        t.add("icon", icon);
+        t.add("icon", GenerationDialect.ammoIcon(ammoId));
         tabs.add(t);
+    }
+
+    private static Path findProjectRoot(Path outputRoot) {
+        Path current = outputRoot.toAbsolutePath();
+        while (current != null) {
+            if (Files.isRegularFile(current.resolve("docs/tarkov_ammo_stats.csv"))) {
+                return current;
+            }
+            current = current.getParent();
+        }
+        throw new IllegalStateException("[tacz_caliber_ammo] cannot locate docs/tarkov_ammo_stats.csv from "
+                + outputRoot.toAbsolutePath());
     }
 
     // ==== CSV / 数值工具 ====
@@ -571,7 +578,7 @@ public class CaliberAmmoDataProvider implements DataProvider {
     }
 
     private static void writePng(CachedOutput cache, Path path, byte[] data) throws IOException {
-        cache.writeIfNeeded(path, data, Hashing.sha1().hashBytes(data));
+        cache.writeIfNeeded(path, data, Hashing.sha256().hashBytes(data));
     }
 
     @Override

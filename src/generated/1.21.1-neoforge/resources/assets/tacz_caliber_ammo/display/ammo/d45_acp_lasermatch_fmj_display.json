@@ -1,0 +1,5 @@
+{
+  "model": "tacz:ammo/45acp",
+  "slot": "tacz_caliber_ammo:ammo/slot/d45_acp/lasermatch_fmj",
+  "texture": "tacz:ammo/uv/45acp"
+}

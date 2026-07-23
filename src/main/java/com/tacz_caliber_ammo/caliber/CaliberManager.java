@@ -17,7 +17,7 @@ import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
 import com.tacz.guns.api.TimelessAPI;
 import com.tacz_caliber_ammo.TaczCaliberAmmo;
-import com.tacz_caliber_ammo.config.ModConfig;
+import com.tacz_caliber_ammo.platform.config.ModConfig;
 
 import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
@@ -100,7 +100,7 @@ public final class CaliberManager {
     }
 
     private static void putNative(Map<ResourceLocation, ResourceLocation> m, String nativeAmmo, String caliber) {
-        m.put(new ResourceLocation("tacz", nativeAmmo), TaczCaliberAmmo.prefix(caliber));
+        m.put(ResourceLocation.tryParse("tacz:" + nativeAmmo), TaczCaliberAmmo.prefix(caliber));
     }
 
     private CaliberManager() {
@@ -300,7 +300,11 @@ public final class CaliberManager {
                 continue;
             }
             for (Map.Entry<String, JsonElement> g : o.getAsJsonObject("guns").entrySet()) {
-                ResourceLocation gunId = new ResourceLocation(g.getKey());
+                ResourceLocation gunId = ResourceLocation.tryParse(g.getKey());
+                if (gunId == null) {
+                    LOGGER.warn("[tacz_caliber_ammo] invalid gun id in modify_gun_caliber: {}", g.getKey());
+                    continue;
+                }
                 Integer prev = wonPriority.get(gunId);
                 if (prev != null && prev > priority) {
                     continue;
@@ -462,9 +466,6 @@ public final class CaliberManager {
 
     /** 口径字符串 -> ResourceLocation：无命名空间时默认 tacz_caliber_ammo。 */
     private static ResourceLocation toCaliberId(String s) {
-        if (s.indexOf(':') >= 0) {
-            return new ResourceLocation(s);
-        }
-        return new ResourceLocation("tacz_caliber_ammo", s);
+        return ResourceLocation.tryParse(s.indexOf(':') >= 0 ? s : "tacz_caliber_ammo:" + s);
     }
 }

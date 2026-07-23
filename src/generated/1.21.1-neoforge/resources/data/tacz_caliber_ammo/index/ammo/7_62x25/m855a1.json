@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.35,
+  "ballisticCoefficient": 0.17,
+  "baseDamage": 5.0,
+  "caliber": "7_62x25",
+  "display": "tacz_caliber_ammo:7_62x25_m855a1_display",
+  "headShotMultiplier": 1.3,
+  "name": "ammo.tacz_caliber_ammo.7_62x25.m855a1",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 0,
+  "sort": 11,
+  "speed": 900,
+  "stack_size": 60
+}

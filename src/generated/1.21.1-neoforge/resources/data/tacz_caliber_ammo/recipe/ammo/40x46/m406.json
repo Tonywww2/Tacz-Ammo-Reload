@@ -1,0 +1,23 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 12,
+      "item": {
+        "tag": "c:ingots/copper"
+      }
+    },
+    {
+      "count": 8,
+      "item": {
+        "tag": "c:gunpowders"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 6,
+    "group": "tacz_caliber_ammo:40x46",
+    "id": "tacz_caliber_ammo:40x46/m406"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.6,
+  "ballisticCoefficient": 0.151,
+  "baseDamage": 14.5,
+  "caliber": "12_7x55",
+  "display": "tacz_caliber_ammo:12_7x55_ps12b_display",
+  "headShotMultiplier": 1.5,
+  "name": "ammo.tacz_caliber_ammo.12_7x55.ps12b",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 15,
+  "sort": 149,
+  "speed": 570,
+  "stack_size": 40
+}

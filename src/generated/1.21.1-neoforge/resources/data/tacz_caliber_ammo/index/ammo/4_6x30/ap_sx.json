@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.7,
+  "ballisticCoefficient": 0.14,
+  "baseDamage": 5.0,
+  "caliber": "4_6x30",
+  "display": "tacz_caliber_ammo:4_6x30_ap_sx_display",
+  "headShotMultiplier": 1.35,
+  "name": "ammo.tacz_caliber_ammo.4_6x30.ap_sx",
+  "pelletCount": 1,
+  "pierce": 2,
+  "recoil": 10,
+  "sort": 62,
+  "speed": 680,
+  "stack_size": 60
+}

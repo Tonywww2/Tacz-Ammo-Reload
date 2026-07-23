@@ -1,0 +1,16 @@
+{
+  "accuracy": 10,
+  "armorIgnore": 0.25,
+  "ballisticCoefficient": 0.437,
+  "baseDamage": 7.5,
+  "caliber": "4_6x30",
+  "display": "tacz_caliber_ammo:4_6x30_subsonic_sx_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.4_6x30.subsonic_sx",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": -22,
+  "sort": 65,
+  "speed": 290,
+  "stack_size": 60
+}

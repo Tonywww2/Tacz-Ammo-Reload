@@ -29,8 +29,9 @@ import com.tacz.guns.resource.pojo.data.gun.GunData;
 import com.tacz_caliber_ammo.caliber.AmmoProfile;
 import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.caliber.Round;
-import com.tacz_caliber_ammo.config.ModConfig;
+import com.tacz_caliber_ammo.platform.config.ModConfig;
 import com.tacz_caliber_ammo.nbt.LoadedAmmoSequence;
+import com.tacz_caliber_ammo.platform.PlatformInventory;
 import com.tacz_caliber_ammo.reload.PouchReloadSource;
 import com.tacz_caliber_ammo.util.DebugLog;
 
@@ -39,8 +40,6 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.items.IItemHandler;
 
 /**
  * PB-2：换弹写序列 + 发射出队。
@@ -76,9 +75,10 @@ public class ModernKineticGunScriptAPIMixin {
         if (this.shooter == null) {
             return map;
         }
-        this.shooter.getCapability(ForgeCapabilities.ITEM_HANDLER, null).ifPresent(cap -> {
-            for (int i = 0; i < cap.getSlots(); i++) {
-                ItemStack s = cap.getStackInSlot(i);
+        PlatformInventory.View inventory = PlatformInventory.find(this.shooter);
+        if (inventory != null) {
+            for (int i = 0; i < inventory.slots(); i++) {
+                ItemStack s = inventory.stackInSlot(i);
                 Item it = s.getItem();
                 if (it instanceof IAmmo ammo) {
                     map.put(i, new Round(ammo.getAmmoId(s), s.getCount()));
@@ -86,7 +86,7 @@ public class ModernKineticGunScriptAPIMixin {
                     map.put(i, new Round(box.getAmmoId(s), box.getAmmoCount(s)));
                 }
             }
-        });
+        }
         return map;
     }
 
@@ -232,12 +232,12 @@ public class ModernKineticGunScriptAPIMixin {
         }
         // 用 resolve() 取出 handler 后在能力回调外遍历：LazyOptional.map 的函数若返回 null，Forge 会
         // 包成 Optional.of(null) 抛 NPE（背包有该能力但无匹配弹药时必崩，见 reload 崩溃报告），故不在 map 里返回 null。
-        IItemHandler cap = this.shooter.getCapability(ForgeCapabilities.ITEM_HANDLER, null).resolve().orElse(null);
-        if (cap == null) {
+        PlatformInventory.View inventory = PlatformInventory.find(this.shooter);
+        if (inventory == null) {
             return null;
         }
-        for (int i = 0; i < cap.getSlots(); i++) {
-            ItemStack s = cap.getStackInSlot(i);
+        for (int i = 0; i < inventory.slots(); i++) {
+            ItemStack s = inventory.stackInSlot(i);
             Item it = s.getItem();
             if (it instanceof IAmmo ammo && ammo.isAmmoOfGun(this.itemStack, s)) {
                 return ammo.getAmmoId(s);

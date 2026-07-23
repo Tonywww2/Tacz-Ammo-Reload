@@ -11,7 +11,7 @@ import com.tacz_caliber_ammo.caliber.AmmoEffects;
 import com.tacz_caliber_ammo.caliber.AmmoProfile;
 import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.caliber.GunDamageModifier;
-import com.tacz_caliber_ammo.config.ModConfig;
+import com.tacz_caliber_ammo.platform.config.ModConfig;
 import com.tacz_caliber_ammo.nbt.LoadedAmmoSequence;
 
 import net.minecraft.ChatFormatting;

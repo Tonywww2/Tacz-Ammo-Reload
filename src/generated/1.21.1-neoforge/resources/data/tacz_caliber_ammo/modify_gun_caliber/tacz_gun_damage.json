@@ -1,0 +1,9 @@
+{
+  "guns": {
+    "tacz:ak47": {
+      "flatDamage": 0.5,
+      "percentDamage": 0.05
+    }
+  },
+  "priority": 0
+}

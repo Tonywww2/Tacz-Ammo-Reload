@@ -14,6 +14,9 @@ ${description}
 [[mixins]]
 config = "tacz_caliber_ammo.mixins.json"
 
+[[mixins]]
+config = "tacz_caliber_ammo.platform.mixins.json"
+
 [[dependencies.${id}]]
 modId = "forge"
 mandatory = true
@@ -26,4 +29,11 @@ modId = "minecraft"
 mandatory = true
 versionRange = "[1.20.1,1.21)"
 ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${id}]]
+modId = "tacz"
+mandatory = true
+versionRange = "[0,)"
+ordering = "AFTER"
 side = "BOTH"

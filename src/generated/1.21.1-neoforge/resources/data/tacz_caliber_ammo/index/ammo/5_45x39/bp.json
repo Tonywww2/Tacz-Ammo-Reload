@@ -1,0 +1,16 @@
+{
+  "accuracy": -3,
+  "armorIgnore": 0.6,
+  "ballisticCoefficient": 0.252,
+  "baseDamage": 6.5,
+  "caliber": "5_45x39",
+  "display": "tacz_caliber_ammo:5_45x39_bp_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.5_45x39.bp",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 7,
+  "sort": 77,
+  "speed": 890,
+  "stack_size": 40
+}

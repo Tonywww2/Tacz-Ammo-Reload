@@ -23,6 +23,7 @@ stonecutter {
     create(rootProject) {
         // 节点名与逻辑版本必须分离，否则版本谓词会把 "1.20.1-forge" 当成 SemVer 预发布
         version("1.20.1-forge", "1.20.1")
+        version("1.21.1-neoforge", "1.21.1")
         // 活动节点由 stonecutter.gradle.kts 指定；vcsVersion = 提交前 Reset 回到的版本
         vcsVersion = "1.20.1-forge"
     }

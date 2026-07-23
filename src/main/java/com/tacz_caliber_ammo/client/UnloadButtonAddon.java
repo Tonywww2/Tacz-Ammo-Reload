@@ -4,7 +4,7 @@ import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.client.gui.GunRefitScreen;
 import com.tacz.guns.client.gui.components.FlatColorButton;
 import com.tacz_caliber_ammo.network.CMsgUnloadAmmo;
-import com.tacz_caliber_ammo.network.ModNetwork;
+import com.tacz_caliber_ammo.platform.PlatformNetwork;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -40,7 +40,7 @@ public final class UnloadButtonAddon {
         int y = screenHeight / 2 - 8;
         FlatColorButton button = new FlatColorButton(x, y, 72, 16,
                 Component.translatable("gui.tacz_caliber_ammo.unload"),
-                b -> ModNetwork.CHANNEL.sendToServer(new CMsgUnloadAmmo(slot)));
+            pressed -> PlatformNetwork.send(new CMsgUnloadAmmo(slot)));
         button.active = hasAmmo;
         return button;
     }

@@ -1,0 +1,16 @@
+{
+  "accuracy": -5,
+  "armorIgnore": 0.45,
+  "ballisticCoefficient": 0.197,
+  "baseDamage": 9.0,
+  "caliber": "d45_acp",
+  "display": "tacz_caliber_ammo:d45_acp_ap_display",
+  "headShotMultiplier": 1.9,
+  "name": "ammo.tacz_caliber_ammo.d45_acp.ap",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 7,
+  "sort": 53,
+  "speed": 299,
+  "stack_size": 60
+}

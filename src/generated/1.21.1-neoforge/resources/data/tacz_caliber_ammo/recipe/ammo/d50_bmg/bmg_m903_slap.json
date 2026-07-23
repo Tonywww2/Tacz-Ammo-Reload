@@ -1,0 +1,29 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 34,
+      "item": {
+        "tag": "c:ingots/copper"
+      }
+    },
+    {
+      "count": 3,
+      "item": {
+        "tag": "c:gunpowders"
+      }
+    },
+    {
+      "count": 14,
+      "item": {
+        "tag": "c:nuggets/iron"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 40,
+    "group": "tacz_caliber_ammo:d50_bmg",
+    "id": "tacz_caliber_ammo:d50_bmg/bmg_m903_slap"
+  }
+}

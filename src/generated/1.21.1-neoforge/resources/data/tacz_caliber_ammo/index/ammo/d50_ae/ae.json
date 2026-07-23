@@ -1,0 +1,16 @@
+{
+  "accuracy": 5,
+  "armorIgnore": 0.4,
+  "ballisticCoefficient": 0.163,
+  "baseDamage": 13.0,
+  "caliber": "d50_ae",
+  "display": "tacz_caliber_ammo:d50_ae_ae_display",
+  "headShotMultiplier": 1.5,
+  "name": "ammo.tacz_caliber_ammo.d50_ae.ae",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 8,
+  "sort": 59,
+  "speed": 460,
+  "stack_size": 60
+}

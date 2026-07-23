@@ -13,7 +13,9 @@ import com.tacz_caliber_ammo.menu.AmmoPouchMenu;
 import com.tacz_caliber_ammo.network.CMsgPouchDeposit;
 import com.tacz_caliber_ammo.network.CMsgPouchPattern;
 import com.tacz_caliber_ammo.network.CMsgPouchWithdraw;
-import com.tacz_caliber_ammo.network.ModNetwork;
+import com.tacz_caliber_ammo.TaczCaliberAmmo;
+import com.tacz_caliber_ammo.platform.PlatformClient;
+import com.tacz_caliber_ammo.platform.PlatformNetwork;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -53,7 +55,7 @@ public class AmmoPouchScreen extends AbstractContainerScreen<AmmoPouchMenu> {
     private static final int HELP_Y = 107;
 
     private static final ResourceLocation BG_TEXTURE =
-            new ResourceLocation("tacz_caliber_ammo", "textures/gui/ammo_pouch.png");
+            TaczCaliberAmmo.prefix("textures/gui/ammo_pouch.png");
 
     // Pattern drag-reorder state: the entry index being dragged, and whether the cursor has actually
     // moved since the press (so a plain click is not treated as a drag).
@@ -120,7 +122,7 @@ public class AmmoPouchScreen extends AbstractContainerScreen<AmmoPouchMenu> {
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(g);
+        PlatformClient.renderBackground(this, g, mouseX, mouseY, partialTick);
         super.render(g, mouseX, mouseY, partialTick);
         // While dragging a pattern entry, draw its icon following the cursor and skip tooltips.
         if (this.patternDragging && this.patternDragFrom >= 0) {
@@ -169,17 +171,17 @@ public class AmmoPouchScreen extends AbstractContainerScreen<AmmoPouchMenu> {
         int idx = storageIndexAt(mx, my);
         if (idx >= 0) {
             if (carriedAmmo) {
-                ModNetwork.CHANNEL.sendToServer(new CMsgPouchDeposit(pouchSlot));
+                PlatformNetwork.send(new CMsgPouchDeposit(pouchSlot));
                 return true;
             }
             List<Round> storage = this.menu.getStorageList();
             if (idx < storage.size()) {
                 String id = storage.get(idx).ammoId().toString();
                 if (button == 1) {
-                    ModNetwork.CHANNEL.sendToServer(
+                    PlatformNetwork.send(
                             new CMsgPouchPattern(pouchSlot, CMsgPouchPattern.OP_ADD, 0, id, 1));
                 } else {
-                    ModNetwork.CHANNEL.sendToServer(new CMsgPouchWithdraw(pouchSlot, id));
+                    PlatformNetwork.send(new CMsgPouchWithdraw(pouchSlot, id));
                 }
                 return true;
             }
@@ -189,7 +191,7 @@ public class AmmoPouchScreen extends AbstractContainerScreen<AmmoPouchMenu> {
         if (carriedAmmo && patternSlotIndexAt(mx, my) >= 0) {
             ResourceLocation aid = ((IAmmo) carried.getItem()).getAmmoId(carried);
             if (aid != null && !DefaultAssets.EMPTY_AMMO_ID.equals(aid)) {
-                ModNetwork.CHANNEL.sendToServer(
+                PlatformNetwork.send(
                         new CMsgPouchPattern(pouchSlot, CMsgPouchPattern.OP_ADD, 0, aid.toString(), 1));
             }
             return true;
@@ -200,7 +202,7 @@ public class AmmoPouchScreen extends AbstractContainerScreen<AmmoPouchMenu> {
             List<PatternEntry> pattern = this.menu.getPatternList();
             if (btn[0] < pattern.size()) {
                 int next = pattern.get(btn[0]).perCycle() + btn[1];
-                ModNetwork.CHANNEL.sendToServer(
+                PlatformNetwork.send(
                         new CMsgPouchPattern(pouchSlot, CMsgPouchPattern.OP_SET_PERCYCLE, btn[0], "", next));
             }
             return true;
@@ -211,7 +213,7 @@ public class AmmoPouchScreen extends AbstractContainerScreen<AmmoPouchMenu> {
             List<PatternEntry> pattern = this.menu.getPatternList();
             if (pIdx < pattern.size()) {
                 if (button == 1) {
-                    ModNetwork.CHANNEL.sendToServer(
+                    PlatformNetwork.send(
                             new CMsgPouchPattern(pouchSlot, CMsgPouchPattern.OP_REMOVE, pIdx, "", 0));
                 } else if (button == 0) {
                     this.patternDragFrom = pIdx;
@@ -245,11 +247,11 @@ public class AmmoPouchScreen extends AbstractContainerScreen<AmmoPouchMenu> {
             if (from < pattern.size()) {
                 if (to >= 0 && to != from && to < pattern.size()) {
                     // Dropped onto another pattern cell -> reorder.
-                    ModNetwork.CHANNEL.sendToServer(
+                    PlatformNetwork.send(
                             new CMsgPouchPattern(pouchSlot, CMsgPouchPattern.OP_MOVE, from, "", to));
                 } else if (wasDragging && to < 0) {
                     // Dragged out of the pattern row and released -> remove.
-                    ModNetwork.CHANNEL.sendToServer(
+                    PlatformNetwork.send(
                             new CMsgPouchPattern(pouchSlot, CMsgPouchPattern.OP_REMOVE, from, "", 0));
                 }
             }

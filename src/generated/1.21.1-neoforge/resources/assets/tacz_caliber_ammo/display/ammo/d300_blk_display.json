@@ -1,0 +1,5 @@
+{
+  "model": "tacz:ammo/308",
+  "slot": "tacz_caliber_ammo:ammo/slot/d300_blk",
+  "texture": "tacz_caliber_ammo:ammo/uv/d300_blk"
+}

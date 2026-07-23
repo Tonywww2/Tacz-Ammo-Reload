@@ -10,13 +10,12 @@ import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.caliber.PatternEntry;
 import com.tacz_caliber_ammo.caliber.Round;
 import com.tacz_caliber_ammo.item.AmmoPouchItem;
+import com.tacz_caliber_ammo.platform.PlatformInventory;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.items.IItemHandler;
 
 /**
  * 弹药包换弹供弹（Stage 6 T6.6/T6.7）。策略：<b>弹药包优先、背包兜底</b>。
@@ -136,7 +135,7 @@ public final class PouchReloadSource {
         if (cycle.isEmpty()) {
             return result;
         }
-        IItemHandler inv = player.getCapability(ForgeCapabilities.ITEM_HANDLER, null).orElse(null);
+        PlatformInventory.View inv = PlatformInventory.find(player);
         int base = ((startPos % cycle.size()) + cycle.size()) % cycle.size();
         for (int k = 0; k < need; k++) {
             ResourceLocation v = cycle.get((base + k) % cycle.size());
@@ -153,10 +152,10 @@ public final class PouchReloadSource {
     }
 
     /** 从背包扣特定弹种 {@code ammoId} 共 {@code n} 发（且属于该枪 isAmmoOfGun）；返回实际扣数。 */
-    private static int extractSpecific(IItemHandler inv, ResourceLocation ammoId, int n, ItemStack gun) {
+    private static int extractSpecific(PlatformInventory.View inv, ResourceLocation ammoId, int n, ItemStack gun) {
         int left = n;
-        for (int i = 0; i < inv.getSlots() && left > 0; i++) {
-            ItemStack s = inv.getStackInSlot(i);
+        for (int i = 0; i < inv.slots() && left > 0; i++) {
+            ItemStack s = inv.stackInSlot(i);
             if (s.getItem() instanceof IAmmo ammo && ammoId.equals(ammo.getAmmoId(s)) && ammo.isAmmoOfGun(gun, s)) {
                 left -= inv.extractItem(i, left, false).getCount();
             }

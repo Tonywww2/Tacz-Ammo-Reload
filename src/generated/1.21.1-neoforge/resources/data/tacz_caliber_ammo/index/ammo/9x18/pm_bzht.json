@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.15,
+  "ballisticCoefficient": 0.067,
+  "baseDamage": 7.5,
+  "caliber": "9x18",
+  "display": "tacz_caliber_ammo:9x18_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.9x18.pm_bzht",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 0,
+  "sort": 22,
+  "speed": 325,
+  "stack_size": 60
+}

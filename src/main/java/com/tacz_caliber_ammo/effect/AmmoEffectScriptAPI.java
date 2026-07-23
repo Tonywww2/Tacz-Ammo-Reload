@@ -1,7 +1,9 @@
 package com.tacz_caliber_ammo.effect;
 
 import com.tacz.guns.entity.EntityKineticBullet;
-import com.tacz_caliber_ammo.config.ModConfig;
+import com.tacz_caliber_ammo.platform.PlatformEffects;
+import com.tacz_caliber_ammo.platform.PlatformEntity;
+import com.tacz_caliber_ammo.platform.config.ModConfig;
 
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
@@ -10,15 +12,12 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
-import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.registries.ForgeRegistries;
 
 /**
  * 传给弹药效果 Lua 脚本的 api 对象（每次派发新建，经 {@code CoerceJavaToLua.coerce} 传入，脚本用 {@code api:xxx()} 调用）。
@@ -96,7 +95,7 @@ public final class AmmoEffectScriptAPI {
     /** 点燃目标 {@code seconds} 秒（无目标则无效）。 */
     public void ignite(int seconds) {
         if (target != null && seconds > 0) {
-            target.setSecondsOnFire(seconds);
+            PlatformEntity.ignite(target, seconds);
         }
     }
 
@@ -109,13 +108,12 @@ public final class AmmoEffectScriptAPI {
         if (id == null) {
             return;
         }
-        MobEffect effect = ForgeRegistries.MOB_EFFECTS.getValue(id);
-        if (effect == null) {
-            return;
-        }
         int cap = ModConfig.maxEffectSeconds() * 20;
         int dur = Mth.clamp(durationTicks, 0, cap);
-        target.addEffect(new MobEffectInstance(effect, dur, Math.max(amplifier, 0)));
+        MobEffectInstance instance = PlatformEffects.createInstance(id, dur, Math.max(amplifier, 0));
+        if (instance != null) {
+            target.addEffect(instance);
+        }
     }
 
     /** 对目标追加伤害（在弹药本体伤害之外，无目标则无效）。 */
@@ -185,7 +183,7 @@ public final class AmmoEffectScriptAPI {
         if (id == null) {
             return;
         }
-        ParticleType<?> type = ForgeRegistries.PARTICLE_TYPES.getValue(id);
+        ParticleType<?> type = PlatformEffects.particle(id);
         if (type instanceof SimpleParticleType simple) {
             level.sendParticles(simple, pos.x, pos.y, pos.z, Math.max(count, 0), spread, spread, spread, 0.0);
         }
@@ -200,7 +198,7 @@ public final class AmmoEffectScriptAPI {
         if (id == null) {
             return;
         }
-        SoundEvent se = ForgeRegistries.SOUND_EVENTS.getValue(id);
+        SoundEvent se = PlatformEffects.sound(id);
         if (se != null) {
             level.playSound(null, pos.x, pos.y, pos.z, se, SoundSource.PLAYERS, (float) volume, (float) pitch);
         }

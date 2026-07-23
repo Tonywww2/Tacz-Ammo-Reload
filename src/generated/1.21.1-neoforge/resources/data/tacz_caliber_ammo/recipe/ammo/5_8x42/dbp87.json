@@ -1,0 +1,23 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 20,
+      "item": {
+        "tag": "c:ingots/copper"
+      }
+    },
+    {
+      "count": 3,
+      "item": {
+        "tag": "c:gunpowders"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 40,
+    "group": "tacz_caliber_ammo:5_8x42",
+    "id": "tacz_caliber_ammo:5_8x42/dbp87"
+  }
+}

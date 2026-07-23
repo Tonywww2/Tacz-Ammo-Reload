@@ -8,11 +8,11 @@ import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.builder.AmmoItemBuilder;
 import com.tacz_caliber_ammo.caliber.Round;
 import com.tacz_caliber_ammo.nbt.LoadedAmmoSequence;
+import com.tacz_caliber_ammo.platform.PlatformItems;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.ItemHandlerHelper;
 
 /**
  * 配件（任意类型）装/卸之后：把弹匣里的所有弹药返还玩家，然后强制清空弹匣（{@code currentAmmoCount=0}）。
@@ -70,7 +70,7 @@ public final class AttachmentAmmoHandler {
             while (remaining > 0) {
                 int give = Math.min(remaining, stackSize);
                 ItemStack ammoItem = AmmoItemBuilder.create().setId(ammoId).setCount(give).build();
-                ItemHandlerHelper.giveItemToPlayer(player, ammoItem);
+                PlatformItems.giveToPlayer(player, ammoItem);
                 remaining -= give;
             }
         });

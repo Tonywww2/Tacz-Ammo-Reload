@@ -13,6 +13,7 @@ versions/*/.gradle/
 
 # ===== Minecraft dev run output =====
 run/
+run-neoforge-1.21.1/
 runs/
 logs/
 crash-reports/
@@ -20,6 +21,7 @@ crash-reports/
 
 # ===== Forge datagen hash cache (generated resources are committed, cache is not) =====
 src/generated/resources/.cache/
+src/generated/1.21.1-neoforge/resources/.cache/
 
 # ===== IDE: IntelliJ IDEA =====
 .idea/

@@ -8,11 +8,11 @@ import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.builder.AmmoItemBuilder;
 import com.tacz_caliber_ammo.caliber.Round;
 import com.tacz_caliber_ammo.nbt.LoadedAmmoSequence;
+import com.tacz_caliber_ammo.platform.PlatformItems;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.ItemHandlerHelper;
 
 /**
  * 退弹服务端逻辑门面（冻结契约 by PA-1）。PC-2 实现（读 LoadedSeq 逐类型归还 + 清空弹匣）。
@@ -77,7 +77,7 @@ public final class UnloadHandler {
             while (remaining > 0) {
                 int give = Math.min(remaining, stackSize);
                 ItemStack ammoItem = AmmoItemBuilder.create().setId(ammoId).setCount(give).build();
-                ItemHandlerHelper.giveItemToPlayer(player, ammoItem);
+                PlatformItems.giveToPlayer(player, ammoItem);
                 remaining -= give;
             }
         });

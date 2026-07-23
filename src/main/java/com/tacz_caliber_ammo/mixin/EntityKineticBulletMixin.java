@@ -19,13 +19,13 @@ import com.tacz_caliber_ammo.caliber.AmmoEffects;
 import com.tacz_caliber_ammo.caliber.AmmoProfile;
 import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.caliber.GunDamageModifier;
-import com.tacz_caliber_ammo.config.ModConfig;
+import com.tacz_caliber_ammo.platform.config.ModConfig;
 import com.tacz_caliber_ammo.duck.IGravityBullet;
 import com.tacz_caliber_ammo.duck.ISpeedDecayBullet;
 import com.tacz_caliber_ammo.effect.AmmoEffectDispatcher;
 import com.tacz_caliber_ammo.effect.AmmoEffectScriptAPI;
 import com.tacz_caliber_ammo.effect.FlareEffect;
-import com.tacz_caliber_ammo.event.BulletCreatedEvent;
+import com.tacz_caliber_ammo.platform.EventBridge;
 import com.tacz_caliber_ammo.util.DebugLog;
 
 import net.minecraft.resources.ResourceLocation;
@@ -36,7 +36,6 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.common.MinecraftForge;
 
 /**
  * 伤害所有权反转（PB-3）。在子弹构造末尾按 ammoId 取弹药档，
@@ -162,7 +161,7 @@ public class EntityKineticBulletMixin implements ISpeedDecayBullet, IGravityBull
         if (worldIn.isClientSide()) {
             return;
         }
-        MinecraftForge.EVENT_BUS.post(new BulletCreatedEvent((EntityKineticBullet) (Object) this));
+        EventBridge.postBulletCreated((EntityKineticBullet) (Object) this);
     }
 
     /** IGravityBullet：暴露 TacZ 私有 gravity 供事件监听器读写（mixin 只暴露、不含弹种逻辑）。 */

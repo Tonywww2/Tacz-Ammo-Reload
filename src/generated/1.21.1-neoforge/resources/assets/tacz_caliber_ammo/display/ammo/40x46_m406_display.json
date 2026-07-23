@@ -1,0 +1,9 @@
+{
+  "entity": {
+    "model": "tacz_caliber_ammo:ammo_entity/40mm_grenade",
+    "texture": "tacz_caliber_ammo:ammo_entity/40x46/m406"
+  },
+  "model": "tacz:ammo/40mm_grenade",
+  "slot": "tacz_caliber_ammo:ammo/slot/40x46/m406",
+  "texture": "tacz:ammo/uv/40mm"
+}

@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.55,
+  "ballisticCoefficient": 0.4,
+  "baseDamage": 11.0,
+  "caliber": "d30_06",
+  "display": "tacz_caliber_ammo:d30_06_m2_ball_display",
+  "headShotMultiplier": 1.4,
+  "name": "ammo.tacz_caliber_ammo.d30_06.m2_ball",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 5,
+  "sort": 221,
+  "speed": 840,
+  "stack_size": 40
+}

@@ -1,26 +1,18 @@
 package com.tacz_caliber_ammo.registry;
 
-import com.tacz_caliber_ammo.TaczCaliberAmmo;
 import com.tacz_caliber_ammo.menu.AmmoPouchMenu;
+import com.tacz_caliber_ammo.platform.PlatformRegistries;
+
+import java.util.function.Supplier;
 
 import net.minecraft.world.inventory.MenuType;
-import net.minecraftforge.common.extensions.IForgeMenuType;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
 
 /**
- * Menu type registration (Forge DeferredRegister). Hooked to the mod bus by the main class, next to
- * ModItems. First menu in this mod: the ammo pouch GUI. Uses IForgeMenuType so the client factory can
- * read extra data (the pouch inventory-slot index) from the open-screen buffer.
+ * 平台中立菜单引用。实际 menu factory 与 DeferredRegister 位于所选 platform 源集。
  */
 public final class ModMenus {
 
-    public static final DeferredRegister<MenuType<?>> REGISTER =
-            DeferredRegister.create(ForgeRegistries.MENU_TYPES, TaczCaliberAmmo.MODID);
-
-    public static final RegistryObject<MenuType<AmmoPouchMenu>> AMMO_POUCH =
-            REGISTER.register("ammo_pouch", () -> IForgeMenuType.create(AmmoPouchMenu::new));
+    public static final Supplier<MenuType<AmmoPouchMenu>> AMMO_POUCH = PlatformRegistries.AMMO_POUCH_MENU;
 
     private ModMenus() {
     }

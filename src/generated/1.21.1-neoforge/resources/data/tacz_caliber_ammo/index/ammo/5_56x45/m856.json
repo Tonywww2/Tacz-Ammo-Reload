@@ -1,0 +1,16 @@
+{
+  "accuracy": -2,
+  "armorIgnore": 0.15,
+  "ballisticCoefficient": 0.241,
+  "baseDamage": 8.5,
+  "caliber": "5_56x45",
+  "display": "tacz_caliber_ammo:5_56x45_m856_display",
+  "headShotMultiplier": 1.5,
+  "name": "ammo.tacz_caliber_ammo.5_56x45.m856",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": -2,
+  "sort": 95,
+  "speed": 874,
+  "stack_size": 40
+}

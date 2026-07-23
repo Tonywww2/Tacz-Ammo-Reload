@@ -10,8 +10,10 @@ import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IAmmo;
 import com.tacz.guns.api.item.builder.AmmoItemBuilder;
 import com.tacz_caliber_ammo.caliber.PatternEntry;
-import com.tacz_caliber_ammo.menu.AmmoPouchMenu;
 import com.tacz_caliber_ammo.nbt.NbtKeys;
+import com.tacz_caliber_ammo.platform.PlatformInventory;
+import com.tacz_caliber_ammo.platform.PlatformItemData;
+import com.tacz_caliber_ammo.platform.PlatformMenu;
 import com.tacz_caliber_ammo.util.DebugLog;
 
 import net.minecraft.ChatFormatting;
@@ -25,7 +27,6 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.ClickAction;
@@ -33,11 +34,7 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.network.NetworkHooks;
 
 /**
  * 弹药包：多弹种存储 + 压弹图案（Stage 6）。
@@ -72,8 +69,8 @@ public class AmmoPouchItem extends Item {
     /** 读多弹种存储（有序）。 */
     public static Map<ResourceLocation, Integer> getStore(ItemStack pouch) {
         Map<ResourceLocation, Integer> map = new LinkedHashMap<>();
-        CompoundTag tag = pouch.getTag();
-        if (tag == null || !tag.contains(NbtKeys.POUCH_STORE, Tag.TAG_LIST)) {
+        CompoundTag tag = PlatformItemData.copy(pouch);
+        if (!tag.contains(NbtKeys.POUCH_STORE, Tag.TAG_LIST)) {
             return map;
         }
         ListTag list = tag.getList(NbtKeys.POUCH_STORE, Tag.TAG_COMPOUND);
@@ -100,7 +97,7 @@ public class AmmoPouchItem extends Item {
             e.putInt(COUNT, en.getValue());
             list.add(e);
         }
-        pouch.getOrCreateTag().put(NbtKeys.POUCH_STORE, list);
+        PlatformItemData.update(pouch, tag -> tag.put(NbtKeys.POUCH_STORE, list));
     }
 
     /** 存储总发数。 */
@@ -208,8 +205,8 @@ public class AmmoPouchItem extends Item {
     /** 读压弹图案（最多 MAX_PATTERN 项）。 */
     public static List<PatternEntry> getPattern(ItemStack pouch) {
         List<PatternEntry> out = new ArrayList<>();
-        CompoundTag tag = pouch.getTag();
-        if (tag == null || !tag.contains(NbtKeys.POUCH_PATTERN, Tag.TAG_LIST)) {
+        CompoundTag tag = PlatformItemData.copy(pouch);
+        if (!tag.contains(NbtKeys.POUCH_PATTERN, Tag.TAG_LIST)) {
             return out;
         }
         ListTag list = tag.getList(NbtKeys.POUCH_PATTERN, Tag.TAG_COMPOUND);
@@ -241,7 +238,7 @@ public class AmmoPouchItem extends Item {
             list.add(e);
             cnt++;
         }
-        pouch.getOrCreateTag().put(NbtKeys.POUCH_PATTERN, list);
+        PlatformItemData.update(pouch, tag -> tag.put(NbtKeys.POUCH_PATTERN, list));
     }
 
     /**
@@ -259,30 +256,29 @@ public class AmmoPouchItem extends Item {
             if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer
                     && hand == InteractionHand.MAIN_HAND) {
                 int pouchSlot = player.getInventory().selected;
-                NetworkHooks.openScreen(serverPlayer, new SimpleMenuProvider(
-                        (id, inv, p) -> new AmmoPouchMenu(id, inv, pouchSlot), pouch.getHoverName()),
-                        buf -> buf.writeVarInt(pouchSlot));
+                PlatformMenu.openAmmoPouch(serverPlayer, pouch, pouchSlot);
             }
             return InteractionResultHolder.success(pouch);
         }
         if (level.isClientSide() || !DebugLog.ENABLED) {
             return InteractionResultHolder.success(pouch);
         }
-        IItemHandler inv = player.getCapability(ForgeCapabilities.ITEM_HANDLER, null).resolve().orElse(null);
+        PlatformInventory.View inv = PlatformInventory.find(player);
         if (inv == null) {
             return InteractionResultHolder.success(pouch);
         }
         List<ResourceLocation> order = new ArrayList<>();
-        for (int i = 0; i < inv.getSlots(); i++) {
-            ItemStack s = inv.getStackInSlot(i);
+        for (int i = 0; i < inv.slots(); i++) {
+            ItemStack s = inv.stackInSlot(i);
             if (s.getItem() instanceof IAmmo ammo) {
                 ResourceLocation id = ammo.getAmmoId(s);
                 if (id == null) {
                     continue;
                 }
-                int added = this.deposit(pouch, id, s.getCount());
+                int available = inv.extractItem(i, s.getCount(), true).getCount();
+                int added = this.deposit(pouch, id, available);
                 if (added > 0) {
-                    s.shrink(added);
+                    inv.extractItem(i, added, false);
                     if (!order.contains(id)) {
                         order.add(id);
                     }

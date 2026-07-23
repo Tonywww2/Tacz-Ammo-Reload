@@ -1,0 +1,23 @@
+{
+  "type": "tacz:gun_smith_table_crafting",
+  "materials": [
+    {
+      "count": 21,
+      "item": {
+        "tag": "c:ingots/copper"
+      }
+    },
+    {
+      "count": 3,
+      "item": {
+        "tag": "c:gunpowders"
+      }
+    }
+  ],
+  "result": {
+    "type": "ammo",
+    "count": 40,
+    "group": "tacz_caliber_ammo:9x39",
+    "id": "tacz_caliber_ammo:9x39/spp"
+  }
+}

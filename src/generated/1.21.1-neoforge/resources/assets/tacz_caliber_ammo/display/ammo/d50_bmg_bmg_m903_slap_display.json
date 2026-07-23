@@ -1,0 +1,5 @@
+{
+  "model": "tacz:ammo/50bmg",
+  "slot": "tacz_caliber_ammo:ammo/slot/d50_bmg/bmg_m903_slap",
+  "texture": "tacz:ammo/uv/50bmg"
+}

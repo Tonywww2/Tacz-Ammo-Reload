@@ -1,0 +1,16 @@
+{
+  "accuracy": 0,
+  "armorIgnore": 0.05,
+  "ballisticCoefficient": 0.131,
+  "baseDamage": 10.0,
+  "caliber": "9x19",
+  "display": "tacz_caliber_ammo:9x19_luger_cci_display",
+  "headShotMultiplier": 1.45,
+  "name": "ammo.tacz_caliber_ammo.9x19.luger_cci",
+  "pelletCount": 1,
+  "pierce": 1,
+  "recoil": 0,
+  "sort": 40,
+  "speed": 420,
+  "stack_size": 60
+}

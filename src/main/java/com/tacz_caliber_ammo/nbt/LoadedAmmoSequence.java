@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.tacz_caliber_ammo.caliber.Round;
+import com.tacz_caliber_ammo.platform.PlatformItemData;
 import com.tacz_caliber_ammo.util.DebugLog;
 
 import net.minecraft.nbt.CompoundTag;
@@ -28,8 +29,8 @@ public final class LoadedAmmoSequence {
     /** 读出逐发序列（RLE 段）。 */
     public static List<Round> getSequence(ItemStack gun) {
         List<Round> out = new ArrayList<>();
-        CompoundTag tag = gun.getTag();
-        if (tag == null || !tag.contains(NbtKeys.LOADED_SEQ, Tag.TAG_LIST)) {
+        CompoundTag tag = PlatformItemData.copy(gun);
+        if (!tag.contains(NbtKeys.LOADED_SEQ, Tag.TAG_LIST)) {
             return out;
         }
         ListTag list = tag.getList(NbtKeys.LOADED_SEQ, Tag.TAG_COMPOUND);
@@ -56,13 +57,13 @@ public final class LoadedAmmoSequence {
             e.putInt(COUNT, r.count());
             list.add(e);
         }
-        gun.getOrCreateTag().put(NbtKeys.LOADED_SEQ, list);
+        PlatformItemData.update(gun, tag -> tag.put(NbtKeys.LOADED_SEQ, list));
     }
 
     /** 查看队首（上膛/下一发）弹种，不出队；空返回 null。 */
     public static ResourceLocation peekHead(ItemStack gun) {
-        CompoundTag tag = gun.getTag();
-        if (tag == null || !tag.contains(NbtKeys.LOADED_SEQ, Tag.TAG_LIST)) {
+        CompoundTag tag = PlatformItemData.copy(gun);
+        if (!tag.contains(NbtKeys.LOADED_SEQ, Tag.TAG_LIST)) {
             return null;
         }
         ListTag list = tag.getList(NbtKeys.LOADED_SEQ, Tag.TAG_COMPOUND);
@@ -75,8 +76,8 @@ public final class LoadedAmmoSequence {
 
     /** 出队一发，返回该发弹种，队首段计数 -1（归零则移除）；空返回 null。 */
     public static ResourceLocation popNextRound(ItemStack gun) {
-        CompoundTag tag = gun.getTag();
-        if (tag == null || !tag.contains(NbtKeys.LOADED_SEQ, Tag.TAG_LIST)) {
+        CompoundTag tag = PlatformItemData.copy(gun);
+        if (!tag.contains(NbtKeys.LOADED_SEQ, Tag.TAG_LIST)) {
             return null;
         }
         ListTag list = tag.getList(NbtKeys.LOADED_SEQ, Tag.TAG_COMPOUND);
@@ -91,7 +92,7 @@ public final class LoadedAmmoSequence {
         } else {
             e.putInt(COUNT, c - 1);
         }
-        tag.put(NbtKeys.LOADED_SEQ, list);
+        PlatformItemData.update(gun, data -> data.put(NbtKeys.LOADED_SEQ, list));
         DebugLog.log("popNextRound -> {} (remaining segs={})", id, list.size());
         return id;
     }
@@ -99,19 +100,16 @@ public final class LoadedAmmoSequence {
     /** 写入膛内弹弹种（null 则清除）。 */
     public static void setBarrelAmmo(ItemStack gun, ResourceLocation ammoId) {
         if (ammoId == null) {
-            CompoundTag tag = gun.getTag();
-            if (tag != null) {
-                tag.remove(NbtKeys.BARREL_AMMO);
-            }
+            PlatformItemData.update(gun, tag -> tag.remove(NbtKeys.BARREL_AMMO));
             return;
         }
-        gun.getOrCreateTag().putString(NbtKeys.BARREL_AMMO, ammoId.toString());
+        PlatformItemData.update(gun, tag -> tag.putString(NbtKeys.BARREL_AMMO, ammoId.toString()));
     }
 
     /** 查看膛内弹弹种，不清除；无则 null。 */
     public static ResourceLocation peekBarrelAmmo(ItemStack gun) {
-        CompoundTag tag = gun.getTag();
-        if (tag == null || !tag.contains(NbtKeys.BARREL_AMMO, Tag.TAG_STRING)) {
+        CompoundTag tag = PlatformItemData.copy(gun);
+        if (!tag.contains(NbtKeys.BARREL_AMMO, Tag.TAG_STRING)) {
             return null;
         }
         return ResourceLocation.tryParse(tag.getString(NbtKeys.BARREL_AMMO));
@@ -121,7 +119,7 @@ public final class LoadedAmmoSequence {
     public static ResourceLocation takeBarrelAmmo(ItemStack gun) {
         ResourceLocation id = peekBarrelAmmo(gun);
         if (id != null) {
-            gun.getTag().remove(NbtKeys.BARREL_AMMO);
+            PlatformItemData.update(gun, tag -> tag.remove(NbtKeys.BARREL_AMMO));
         }
         return id;
     }
