@@ -27,7 +27,7 @@ EFT 单条 (tarkov.dev `ItemPropertiesAmmo`):
 | caliber | 口径 id | 查表 (口径名 -> id) |
 | baseDamage | 标量 | d |
 | armorIgnore | 0..1 | pen |
-| headShotMultiplier | >= 1 | frag |
+| headShotMultiplier | >= 1 | 分类 / 口径 + frag |
 | pierce | 整数 | pen |
 
 最终伤害仍为 `final = baseDamage * (1 + gun.percentDamage) + gun.flatDamage`;
@@ -36,44 +36,51 @@ EFT 单条 (tarkov.dev `ItemPropertiesAmmo`):
 ## 2. 转换公式
 
 ```
+frag            = clamp( fragPercent / 100, 0, 1 )
 baseDamage      = clamp( round0.5( d * K_DMG ),  DMG_MIN, DMG_MAX )   // 霰弹用 K_DMG_SHOT
 armorIgnore     = clamp( (pen - PEN0) / PEN_SPAN, 0, AI_CAP )         // round 0.05
 pierce          = 1 + (pen >= P2 ? 1 : 0) + (pen >= P3 ? 1 : 0)
-headShotMult    = clamp( HS_BASE + HS_K * frag, HS_MIN, HS_MAX )      // round 0.05
+headShotMin     = minimumByCategory(category, caliber)
+headShotMult    = clamp( headShotMin + HS_K * frag, headShotMin, HS_MAX ) // round 0.05
 ```
 
 设计意图:
 - 伤害线性压缩到 MC 尺度 (步枪弹落 6..14, .50/12.7 更高但封顶)。
 - 穿甲只由 pen 决定 (EFT 里 pen 就是破甲力); armorDamage 仅作可选微调。
 - 穿透计数按 pen 阈值给 1/2/3。
-- 爆头倍率由 frag 驱动: 碎裂 = 软组织毁伤大 -> 爆头收益高 (复现 HP/曳光高, AP 低)。
+- CSV 的 `破片%` 固定按 0..100 百分数读取，再归一化到 0..1。
+- 爆头倍率先按武器类别给出最低值，再由 frag 提升：碎裂 = 软组织毁伤大 -> 爆头收益高。
+- CSV 未单列“狙击步枪”，因此用口径集合识别；同一口径的弹药共享最低倍率。
 
 ## 3. 常量 (已标定, 可调)
 
 | 常量 | 值 | 说明 |
 |---|---|---|
-| K_DMG | 0.14 | 伤害系数 (proj = 1) |
-| K_DMG_SHOT | 0.09 | 霰弹单颗系数 (proj > 1, 防多颗求和爆表) |
+| K_DMG | 0.16 | 伤害系数 (proj = 1) |
+| K_DMG_SHOT | 0.10 | 霰弹单颗系数 (proj > 1, 防多颗求和爆表) |
 | DMG_MIN / DMG_MAX | 3 / 40 | 伤害封顶 |
 | PEN0 / PEN_SPAN | 8 / 64 | armorIgnore 线性区 |
 | AI_CAP | 0.90 | armorIgnore 上限 |
 | P2 / P3 | 50 / 68 | pierce 2/3 阈值 |
-| HS_BASE / HS_K | 1.30 / 0.60 | 爆头基线 / 斜率 |
-| HS_MIN / HS_MAX | 1.30 / 2.00 | 爆头封顶 |
+| HS_K / HS_MAX | 0.60 / 2.60 | 破片率加成斜率 / 全局上限 |
 
-标定锚点: 5.56 M855 (d=54) -> base 7.5; 7.62x39 FMJ (d=63) -> base ~8.8;
-pen 53 -> armorIgnore 0.70; frag 0.5 -> headshot 1.60。
+爆头最低倍率：手枪 1.20、PDW 1.35、步枪 1.50、霰弹枪 1.80、榴弹/信号弹 1.00；
+无法识别的其他类别为 1.20。以下口径作为狙击步枪弹，优先使用 2.00：
+`7_62x54r`、`d30_06`、`7_92x57_mauser`、`d338`、`9_3x64`、`d50_bmg`。
+
+标定锚点: 5.56 M855 (d=54) -> base 8.5; 7.62x39 FMJ (d=63) -> base 10.0;
+pen 53 -> armorIgnore 0.70; 步枪弹 frag 0.5 -> headshot 1.80。
 
 ## 4. 实测样例 (真实 EFT 数值)
 
 | 口径 / 型号 | EFT d / pen / frag | -> base / armorIgnore / pierce / headshot |
 |---|---|---|
-| 5.56 M855 | 54 / 31 / 0.50 | 7.5 / 0.35 / 1 / 1.60 |
-| 5.56 M995 | 42 / 53 / 0.42 | 6.0 / 0.70 / 2 / 1.55 |
-| 5.56 HP | 79 / 7 / 0.70 | 11.0 / 0.00 / 1 / 1.70 |
-| 5.56 SSA AP | 38 / 57 / 0.30 | 5.5 / 0.75 / 2 / 1.50 |
-| 7.62x39 FMJ | 63 / 26 / 0.30 | 9.0 / 0.30 / 1 / 1.50 |
-| 7.62x39 MAI AP | 53 / 58 / 0.05 | 7.5 / 0.80 / 2 / 1.35 |
+| 5.56 M855 | 54 / 31 / 0.50 | 8.5 / 0.35 / 1 / 1.80 |
+| 5.56 M995 | 42 / 53 / 0.42 | 6.5 / 0.70 / 2 / 1.75 |
+| 5.56 HP | 79 / 7 / 0.70 | 12.5 / 0.00 / 1 / 1.90 |
+| 5.56 SSA AP | 38 / 57 / 0.30 | 6.0 / 0.75 / 2 / 1.70 |
+| 7.62x39 FMJ | 63 / 26 / 0.30 | 10.0 / 0.30 / 1 / 1.70 |
+| 7.62x39 MAI AP | 53 / 58 / 0.05 | 8.5 / 0.80 / 2 / 1.55 |
 
 ## 5. 口径 id / 型号 id / 数据字段
 
@@ -123,3 +130,4 @@ TacZ 弹药 display schema (已核实):
 ## Revision
 
 - 2026-07-15 初稿: 4 条公式 + 常量, 用 EFT 真实数值标定; 驱动 datagen 批量转换 + 纯色占位贴图。
+- 2026-07-31: 普通弹/霰弹伤害系数提高到 0.16/0.10；爆头倍率改为类别下限 + 破片率加成，并按口径识别狙击弹。

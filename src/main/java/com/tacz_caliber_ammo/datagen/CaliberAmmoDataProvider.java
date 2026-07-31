@@ -43,13 +43,17 @@ public class CaliberAmmoDataProvider implements DataProvider {
     private static final String NS = "tacz_caliber_ammo";
 
     // ==== 转换常量 (eft-to-tacz-mapping.md 第 3 节) ====
-    private static final float K_DMG = 0.14f;
-    private static final float K_DMG_SHOT = 0.09f;
+        private static final float K_DMG = 0.16f;
+        private static final float K_DMG_SHOT = 0.10f;
     private static final double DMG_MIN = 3, DMG_MAX = 40;
     private static final int PEN0 = 8, PEN_SPAN = 64;
     private static final double AI_CAP = 0.90;
     private static final int P2 = 50, P3 = 68;
-    private static final double HS_BASE = 1.30, HS_K = 0.60, HS_MIN = 1.30, HS_MAX = 2.00;
+        private static final double HS_K = 0.60, HS_MAX = 2.60;
+
+        /** CSV 不区分步枪与狙击步枪，因此按主要用途明确标记狙击步枪口径。 */
+        private static final Set<String> SNIPER_CALIBERS = Set.of(
+            "7_62x54r", "d30_06", "7_92x57_mauser", "d338", "9_3x64", "d50_bmg");
 
     /** 型号 id 规范化时要丢弃的口径限定词(仅出现在前导位置)。 */
     private static final Set<String> STOP = Set.of(
@@ -200,14 +204,14 @@ public class CaliberAmmoDataProvider implements DataProvider {
             int d = parseInt(c[iDmg]), pen = parseInt(c[iPen]), proj = parseInt(c[iProj]);
             int recoil = parseInt(c[iRecoil]), accuracy = parseInt(c[iAcc]), speed = parseInt(c[iSpeed]);
             double ballisticCoefficient = parseDouble(c[iBc]); // 弹道系数（Tarkov 弹道系数列，越大越耐远距离）
-            double fragRaw = parseDouble(c[iFrag]);
-            double frag = fragRaw > 1.5 ? fragRaw / 100.0 : fragRaw; // CSV 破片% 为百分数
+            double frag = clamp(parseDouble(c[iFrag]) / 100.0, 0, 1); // CSV 破片% 固定为 0..100
 
             float kd = proj > 1 ? K_DMG_SHOT : K_DMG;
             double base = clamp(round(d * kd, 0.5), DMG_MIN, DMG_MAX);
             double armorIgnore = round(clamp((pen - PEN0) / (double) PEN_SPAN, 0, AI_CAP), 0.05);
             int pierce = 1 + (pen >= P2 ? 1 : 0) + (pen >= P3 ? 1 : 0);
-            double headShot = round(clamp(HS_BASE + HS_K * frag, HS_MIN, HS_MAX), 0.05);
+            double headShotMin = headShotMinimumFor(c[iCat], calId);
+            double headShot = round(clamp(headShotMin + HS_K * frag, headShotMin, HS_MAX), 0.05);
             boolean customSlot = hasCustomSlot(projectRoot, calId, model);
             String display;
             if (customSlot) {
@@ -511,6 +515,27 @@ public class CaliberAmmoDataProvider implements DataProvider {
                 return 1;
             default:
                 return 60;
+        }
+    }
+
+    private static double headShotMinimumFor(String category, String calId) {
+        if (SNIPER_CALIBERS.contains(calId)) {
+            return 2.00;
+        }
+        switch (category == null ? "" : category.trim()) {
+            case "手枪":
+                return 1.20;
+            case "PDW":
+                return 1.35;
+            case "步枪":
+                return 1.50;
+            case "霰弹枪":
+                return 1.80;
+            case "榴弹":
+            case "信号弹":
+                return 1.00;
+            default:
+                return 1.20;
         }
     }
 
