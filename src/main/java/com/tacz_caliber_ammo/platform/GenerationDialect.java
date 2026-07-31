@@ -20,6 +20,14 @@ public final class GenerationDialect {
         *///?}
     }
 
+    public static String ironIngotTag() {
+        //? if forge {
+        return "forge:ingots/iron";
+        //?} else {
+        /*return "c:ingots/iron";
+        *///?}
+    }
+
     public static String gunpowderTag() {
         //? if forge {
         return "forge:gunpowder";
@@ -50,6 +58,22 @@ public final class GenerationDialect {
         icon.add("components", components);
         *///?}
         return icon;
+    }
+
+    public static JsonObject workbenchResult(String blockId) {
+        JsonObject result = new JsonObject();
+        //? if forge {
+        result.addProperty("item", "tacz:workbench_a");
+        JsonObject nbt = new JsonObject();
+        nbt.addProperty("BlockId", blockId);
+        result.add("nbt", nbt);
+        //?} else {
+        /*result.addProperty("id", "tacz:workbench_a");
+        JsonObject components = new JsonObject();
+        components.addProperty("minecraft:custom_data", "{BlockId: \"" + blockId + "\"}");
+        result.add("components", components);
+        *///?}
+        return result;
     }
 
     private GenerationDialect() {

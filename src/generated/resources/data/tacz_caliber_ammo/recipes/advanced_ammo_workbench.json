@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": {
+      "tag": "forge:ingots/copper"
+    },
+    "I": {
+      "tag": "forge:ingots/iron"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "W": {
+      "item": "tacz:workbench_a"
+    }
+  },
+  "pattern": [
+    "IRI",
+    "CWC",
+    "IRI"
+  ],
+  "result": {
+    "item": "tacz:workbench_a",
+    "nbt": {
+      "BlockId": "tacz_caliber_ammo:advanced_ammo_workbench"
+    }
+  }
+}

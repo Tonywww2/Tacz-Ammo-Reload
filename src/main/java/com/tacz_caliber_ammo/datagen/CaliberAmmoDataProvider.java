@@ -75,6 +75,9 @@ public class CaliberAmmoDataProvider implements DataProvider {
      *  对它们不要写 model/texture（否则指向不存在的 geo 会抛错、连带 entity 也不加载）；手持退化为 slot 平面图标，与原版一致。 */
     private static final java.util.List<String> NO_HELD_MODEL = java.util.List.of("22wmr", "45_70", "500mag", "792x57");
 
+    /** 使用普通纯物品模型的自定义口径：display 只写 slot，不绑定任何 3D model/texture。 */
+    private static final Set<String> SLOT_ONLY_CALIBERS = Set.of("26_75");
+
     private static Map<String, String> buildCalId() {
         Map<String, String> m = new HashMap<>();
         m.put("12/70", "12_70");
@@ -240,7 +243,9 @@ public class CaliberAmmoDataProvider implements DataProvider {
             // 自定义 slot 贴图的弹种：生成 per-变种 display（复用原型 3D 几何/uv，slot 指向各自贴图）
             if (customSlot) {
                 JsonObject vDisp = new JsonObject();
-                if (PROTO.containsKey(calId)) {
+                if (SLOT_ONLY_CALIBERS.contains(calId)) {
+                    // 普通纯物品模型只使用 slot。
+                } else if (PROTO.containsKey(calId)) {
                     String protoBase = PROTO.get(calId);
                     if (!NO_HELD_MODEL.contains(protoBase)) {
                         // 有 3D 手持几何体：model 用真实 geo 名（40mm 的 geo 是 40mm_grenade），texture 用 uv 基名。
@@ -353,6 +358,10 @@ public class CaliberAmmoDataProvider implements DataProvider {
             blockData.add("tabs", tabs);
             futures.add(DataProvider.saveStable(cache, blockData,
                     root.resolve("data/" + NS + "/data/blocks/" + wbId + ".json")));
+
+            futures.add(DataProvider.saveStable(cache, buildAdvancedWorkbenchRecipe(),
+                    root.resolve("data/" + NS + "/" + GenerationDialect.recipeDirectory()
+                            + "/advanced_ammo_workbench.json")));
         }
 
         // 无原型口径 -> 纯色占位 (uv/slot 单色 PNG + display, 复用通用 TacZ 子弹几何体)
@@ -365,13 +374,17 @@ public class CaliberAmmoDataProvider implements DataProvider {
             try {
                 byte[] png = solidPng(rgb, 16);
                 writePng(cache, root.resolve("assets/" + NS + "/textures/ammo/slot/" + calId + ".png"), png);
-                writePng(cache, root.resolve("assets/" + NS + "/textures/ammo/uv/" + calId + ".png"), png);
+                if (!SLOT_ONLY_CALIBERS.contains(calId)) {
+                    writePng(cache, root.resolve("assets/" + NS + "/textures/ammo/uv/" + calId + ".png"), png);
+                }
             } catch (IOException e) {
                 throw new RuntimeException("[tacz_caliber_ammo] 占位贴图写入失败: " + calId, e);
             }
             JsonObject disp = new JsonObject();
-            disp.addProperty("model", "tacz:ammo/308"); // 复用通用 TacZ 子弹几何体
-            disp.addProperty("texture", NS + ":ammo/uv/" + calId);
+            if (!SLOT_ONLY_CALIBERS.contains(calId)) {
+                disp.addProperty("model", "tacz:ammo/308"); // 复用通用 TacZ 子弹几何体
+                disp.addProperty("texture", NS + ":ammo/uv/" + calId);
+            }
             disp.addProperty("slot", NS + ":ammo/slot/" + calId);
             futures.add(DataProvider.saveStable(cache, disp,
                     root.resolve("assets/" + NS + "/display/ammo/" + calId + "_display.json")));
@@ -421,6 +434,26 @@ public class CaliberAmmoDataProvider implements DataProvider {
     }
 
     // ==== 弹药配方（tacz:gun_smith_table_crafting）====
+
+    private static JsonObject buildAdvancedWorkbenchRecipe() {
+        JsonArray pattern = new JsonArray();
+        pattern.add("IRI");
+        pattern.add("CWC");
+        pattern.add("IRI");
+
+        JsonObject key = new JsonObject();
+        key.add("C", tagIngredient(GenerationDialect.copperIngotTag()));
+        key.add("I", tagIngredient(GenerationDialect.ironIngotTag()));
+        key.add("R", itemIngredient("minecraft:redstone"));
+        key.add("W", itemIngredient("tacz:workbench_a"));
+
+        JsonObject recipe = new JsonObject();
+        recipe.addProperty("type", "minecraft:crafting_shaped");
+        recipe.add("pattern", pattern);
+        recipe.add("key", key);
+        recipe.add("result", GenerationDialect.workbenchResult(NS + ":advanced_ammo_workbench"));
+        return recipe;
+    }
 
     /**
      * 参考 TacZ 原版弹药配方（铜锭 + 火药）按类别定基线；<b>穿甲越高铜越多</b>，穿甲 ≥ 40 额外加铁粒（AP 代价）。
@@ -488,6 +521,18 @@ public class CaliberAmmoDataProvider implements DataProvider {
         m.add("item", item);
         m.addProperty("count", count);
         return m;
+    }
+
+    private static JsonObject tagIngredient(String tag) {
+        JsonObject ingredient = new JsonObject();
+        ingredient.addProperty("tag", tag);
+        return ingredient;
+    }
+
+    private static JsonObject itemIngredient(String item) {
+        JsonObject ingredient = new JsonObject();
+        ingredient.addProperty("item", item);
+        return ingredient;
     }
 
     /**

@@ -16,6 +16,7 @@
 - [环境与依赖](#环境与依赖)
 - [给玩家](#给玩家)
 - [给枪包开发者](#给枪包开发者如何兼容本项目)
+  - [现有口径列表](#现有口径列表)
 - [弹药效果与脚本](#弹药效果与脚本-effects)
 - [给模组开发者](#给模组开发者如何兼容本项目)
 - [构建与数据生成](#构建与数据生成)
@@ -98,6 +99,58 @@
 
 好消息：**你可以零改动兼容**。如果你的枪使用 TacZ 原生弹药，本 mod 会自动为它找到口径；
 如果你想让自己的枪/弹药获得完整的口径 + 弹道体验，则按下文主动适配。
+
+### 现有口径列表
+
+当前内置 38 个常规口径：
+
+```text
+tacz_caliber_ammo:12_70
+tacz_caliber_ammo:12_7x108
+tacz_caliber_ammo:12_7x55
+tacz_caliber_ammo:20_70
+tacz_caliber_ammo:23x75_r
+tacz_caliber_ammo:26_75
+tacz_caliber_ammo:30x29
+tacz_caliber_ammo:40x46
+tacz_caliber_ammo:40_vog_25
+tacz_caliber_ammo:4_6x30
+tacz_caliber_ammo:5_45x39
+tacz_caliber_ammo:5_56x45
+tacz_caliber_ammo:5_7x28
+tacz_caliber_ammo:5_8x42
+tacz_caliber_ammo:6_8x51
+tacz_caliber_ammo:72_5
+tacz_caliber_ammo:7_62x25
+tacz_caliber_ammo:7_62x39
+tacz_caliber_ammo:7_62x51
+tacz_caliber_ammo:7_62x54r
+tacz_caliber_ammo:7_92x57_mauser
+tacz_caliber_ammo:9x18
+tacz_caliber_ammo:9x19
+tacz_caliber_ammo:9x21
+tacz_caliber_ammo:9x39
+tacz_caliber_ammo:9_3x64
+tacz_caliber_ammo:d22_wmr
+tacz_caliber_ammo:d300_blk
+tacz_caliber_ammo:d308_marlin
+tacz_caliber_ammo:d30_06
+tacz_caliber_ammo:d338
+tacz_caliber_ammo:d357
+tacz_caliber_ammo:d366_tkm
+tacz_caliber_ammo:d45_70
+tacz_caliber_ammo:d45_acp
+tacz_caliber_ammo:d500_magnum
+tacz_caliber_ammo:d50_ae
+tacz_caliber_ammo:d50_bmg
+```
+
+另有两个特殊口径 ID：
+
+| ID | 用途 |
+| --- | --- |
+| `tacz_caliber_ammo:none` | 无法解析或尚未配置口径时的兜底标识。 |
+| `tacz_caliber_ammo:universal` | 供万用弹使用，不注册为常规口径，也不参与常规口径匹配。 |
 
 ### 口径解析：四级优先链
 
