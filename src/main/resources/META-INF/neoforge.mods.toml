@@ -20,7 +20,7 @@ config = "tacz_caliber_ammo.platform.mixins.json"
 [[dependencies.tacz_caliber_ammo]]
 modId = "neoforge"
 type = "required"
-versionRange = "[21.1.233,21.2)"
+versionRange = "[21.1.233,)"
 ordering = "NONE"
 side = "BOTH"
 
@@ -34,6 +34,6 @@ side = "BOTH"
 [[dependencies.tacz_caliber_ammo]]
 modId = "tacz"
 type = "required"
-versionRange = "[1.1.8-hotfix-r1]"
+versionRange = ""
 ordering = "AFTER"
 side = "BOTH"
