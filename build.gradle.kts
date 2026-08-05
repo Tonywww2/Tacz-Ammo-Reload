@@ -155,8 +155,36 @@ val preparedArcanaBootstrap = arcanaRuntimeInput?.let { input ->
 val patchArcanaRemappedInvoker = if (withArcana) {
     tasks.register("patchArcanaRemappedInvoker") {
         doLast {
-            val accessor = "group/taczexpands/client/mixin/accessor/IAccessorKeyMapping"
-            val accessorEntry = "$accessor.class"
+            val keyMappingAccessor = "group/taczexpands/client/mixin/accessor/IAccessorKeyMapping"
+            val cameraAccessor = "group/taczexpands/client/mixin/accessor/IAccessorCamera"
+            val entityRendererAccessor = "group/taczexpands/client/mixin/accessor/IAccessorEntityRenderer"
+            val blockRayTraceAccessor = "group/taczexpands/server/mixin/accessor/IAccessorBlockRayTrace"
+            val invokerRenames = mapOf(
+                Triple(keyMappingAccessor, "release", "()V") to "invokeRelease",
+                Triple(cameraAccessor, "setRotation", "(FF)V") to "invokeSetRotation",
+                Triple(cameraAccessor, "setPosition", "(Lnet/minecraft/world/phys/Vec3;)V") to
+                    "invokeSetPosition",
+                Triple(cameraAccessor, "move", "(DDD)V") to "invokeMove",
+                Triple(
+                    entityRendererAccessor,
+                    "getBlockLightLevel",
+                    "(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/core/BlockPos;)I",
+                ) to "invokeGetBlockLightLevel",
+                Triple(
+                    blockRayTraceAccessor,
+                    "performRayTrace",
+                    "(Lnet/minecraft/world/level/ClipContext;Ljava/util/function/BiFunction;" +
+                        "Ljava/util/function/Function;)Ljava/lang/Object;",
+                ) to "invokePerformRayTrace",
+                Triple(
+                    blockRayTraceAccessor,
+                    "getBlockHitResult",
+                    "(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/level/ClipContext;" +
+                        "Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/block/state/BlockState;)" +
+                        "Lnet/minecraft/world/phys/BlockHitResult;",
+                ) to "invokeGetBlockHitResult",
+            )
+            val accessorEntries = invokerRenames.keys.map { "${it.first}.class" }.toSet()
             val searchRoots = listOf(
                 layout.buildDirectory.dir("loom-cache/remapped_working").get().asFile,
                 rootProject.layout.projectDirectory.dir(".gradle/loom-cache/remapped_mods").asFile,
@@ -165,7 +193,9 @@ val patchArcanaRemappedInvoker = if (withArcana) {
                 .flatMap { it.walkTopDown() }
                 .filter { it.isFile && it.extension == "jar" }
                 .filter { jar ->
-                    runCatching { ZipFile(jar).use { it.getEntry(accessorEntry) != null } }.getOrDefault(false)
+                    runCatching {
+                        ZipFile(jar).use { zip -> accessorEntries.any { zip.getEntry(it) != null } }
+                    }.getOrDefault(false)
                 }
                 .toList()
             check(candidates.isNotEmpty()) { "Could not locate Loom's remapped Arcana JAR" }
@@ -202,11 +232,7 @@ val patchArcanaRemappedInvoker = if (withArcana) {
                                         signature: String?,
                                         exceptions: Array<out String>?,
                                     ): MethodVisitor {
-                                        val patchedName = if (className == accessor && name == "release" && descriptor == "()V") {
-                                            "invokeRelease"
-                                        } else {
-                                            name
-                                        }
+                                        val patchedName = invokerRenames[Triple(className, name, descriptor)] ?: name
                                         val delegate = super.visitMethod(access, patchedName, descriptor, signature, exceptions)
                                         return object : MethodVisitor(Opcodes.ASM9, delegate) {
                                             override fun visitMethodInsn(
@@ -216,9 +242,9 @@ val patchArcanaRemappedInvoker = if (withArcana) {
                                                 invokedDescriptor: String,
                                                 isInterface: Boolean,
                                             ) {
-                                                val patchedInvocation = if (
-                                                    owner == accessor && invokedName == "release" && invokedDescriptor == "()V"
-                                                ) "invokeRelease" else invokedName
+                                                val patchedInvocation = invokerRenames[
+                                                    Triple(owner, invokedName, invokedDescriptor)
+                                                ] ?: invokedName
                                                 super.visitMethodInsn(opcode, owner, patchedInvocation, invokedDescriptor, isInterface)
                                             }
                                         }
