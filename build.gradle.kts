@@ -1,3 +1,15 @@
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Opcodes
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
+
 plugins {
     id("dev.architectury.loom") version "1.11-SNAPSHOT"
     id("me.modmuss50.mod-publish-plugin") version "2.1.1"
@@ -19,7 +31,15 @@ val generatedResources = if (loader == "forge") {
 // runData（Forge datagen）会走完整 mod-loading、加载 classpath 上所有 mod；KubeJS 等重型测试 mod 会拉起
 // 非 daemon 后台线程，使 datagen 跑完（All providers took…）后 JVM 不退出，runData 卡住不自动结束。
 // 故跑 runData 时整体排除这些纯测试 modLocalRuntime（datagen 只需要本 mod + Forge + TacZ）。
-val isDatagenRun = gradle.startParameter.taskNames.any { it.contains("runData", ignoreCase = true) }
+val requestedTasks = gradle.startParameter.taskNames
+val isDatagenRun = requestedTasks.any { it.contains("runData", ignoreCase = true) }
+val isGameRun = requestedTasks.any {
+    it.endsWith("runClient", ignoreCase = true) || it.endsWith("runServer", ignoreCase = true)
+}
+val withArcana = providers.gradleProperty("withArcana")
+    .map { it.isBlank() || it.toBoolean() }
+    .orElse(false)
+    .get() && loader == "forge" && isGameRun
 
 group = property("mod.group").toString()
 version = "${property("mod.version")}+$mcVersion"
@@ -85,6 +105,148 @@ repositories {
     }
 }
 
+val arcanaRuntimeInput = if (withArcana) {
+    configurations.create("arcanaRuntimeInput") {
+        isCanBeConsumed = false
+        isCanBeResolved = true
+        isTransitive = false
+    }
+} else {
+    null
+}
+val extractedArcanaRuntime = arcanaRuntimeInput?.let { input ->
+    val extractInner = tasks.register<Sync>("extractArcanaInner") {
+        from({ zipTree(input.singleFile) }) {
+            include("META-INF/mod.jar")
+            eachFile { path = "mod.jar" }
+            includeEmptyDirs = false
+        }
+        into(layout.buildDirectory.dir("arcana/input"))
+    }
+    files(layout.buildDirectory.file("arcana/input/mod.jar")).builtBy(extractInner)
+}
+val preparedArcanaLibraries = extractedArcanaRuntime?.let { runtime ->
+    tasks.register<Zip>("prepareArcanaLibraries") {
+        dependsOn(runtime)
+        from({ zipTree(runtime.singleFile) }) {
+            include("META-INF/jarjar/**")
+        }
+        from(rootProject.file("gradle/arcana-libraries.mods.toml")) {
+            into("META-INF")
+            rename { "mods.toml" }
+        }
+        from(rootProject.file("gradle/arcana-libraries.pack.mcmeta")) {
+            rename { "pack.mcmeta" }
+        }
+        archiveFileName.set("arcana-libraries.jar")
+        destinationDirectory.set(layout.buildDirectory.dir("arcana/runtime"))
+    }
+}
+val preparedArcanaBootstrap = arcanaRuntimeInput?.let { input ->
+    tasks.register<Zip>("prepareArcanaBootstrap") {
+        from({ zipTree(input.singleFile) }) {
+            include("group/taczexpands/coremod/**")
+            include("META-INF/services/cpw.mods.modlauncher.api.ITransformationService")
+        }
+        archiveFileName.set("arcana-bootstrap.jar")
+        destinationDirectory.set(layout.buildDirectory.dir("arcana/runtime"))
+    }
+}
+val patchArcanaRemappedInvoker = if (withArcana) {
+    tasks.register("patchArcanaRemappedInvoker") {
+        doLast {
+            val accessor = "group/taczexpands/client/mixin/accessor/IAccessorKeyMapping"
+            val accessorEntry = "$accessor.class"
+            val searchRoots = listOf(
+                layout.buildDirectory.dir("loom-cache/remapped_working").get().asFile,
+                rootProject.layout.projectDirectory.dir(".gradle/loom-cache/remapped_mods").asFile,
+            )
+            val candidates = searchRoots.asSequence()
+                .flatMap { it.walkTopDown() }
+                .filter { it.isFile && it.extension == "jar" }
+                .filter { jar ->
+                    runCatching { ZipFile(jar).use { it.getEntry(accessorEntry) != null } }.getOrDefault(false)
+                }
+                .toList()
+            check(candidates.isNotEmpty()) { "Could not locate Loom's remapped Arcana JAR" }
+
+            candidates.forEach { jar ->
+                val temporary = jar.resolveSibling("${jar.name}.tmp")
+                ZipInputStream(jar.inputStream().buffered()).use { zipInput ->
+                    ZipOutputStream(temporary.outputStream().buffered()).use { zipOutput ->
+                        var entry = zipInput.nextEntry
+                        while (entry != null) {
+                            zipOutput.putNextEntry(ZipEntry(entry.name))
+                            if (!entry.isDirectory && entry.name.endsWith(".class")) {
+                                val reader = ClassReader(zipInput.readBytes())
+                                val writer = ClassWriter(0)
+                                val visitor = object : ClassVisitor(Opcodes.ASM9, writer) {
+                                    private var className = ""
+
+                                    override fun visit(
+                                        version: Int,
+                                        access: Int,
+                                        name: String,
+                                        signature: String?,
+                                        superName: String?,
+                                        interfaces: Array<out String>?,
+                                    ) {
+                                        className = name
+                                        super.visit(version, access, name, signature, superName, interfaces)
+                                    }
+
+                                    override fun visitMethod(
+                                        access: Int,
+                                        name: String,
+                                        descriptor: String,
+                                        signature: String?,
+                                        exceptions: Array<out String>?,
+                                    ): MethodVisitor {
+                                        val patchedName = if (className == accessor && name == "release" && descriptor == "()V") {
+                                            "invokeRelease"
+                                        } else {
+                                            name
+                                        }
+                                        val delegate = super.visitMethod(access, patchedName, descriptor, signature, exceptions)
+                                        return object : MethodVisitor(Opcodes.ASM9, delegate) {
+                                            override fun visitMethodInsn(
+                                                opcode: Int,
+                                                owner: String,
+                                                invokedName: String,
+                                                invokedDescriptor: String,
+                                                isInterface: Boolean,
+                                            ) {
+                                                val patchedInvocation = if (
+                                                    owner == accessor && invokedName == "release" && invokedDescriptor == "()V"
+                                                ) "invokeRelease" else invokedName
+                                                super.visitMethodInsn(opcode, owner, patchedInvocation, invokedDescriptor, isInterface)
+                                            }
+                                        }
+                                    }
+                                }
+                                reader.accept(visitor, 0)
+                                zipOutput.write(writer.toByteArray())
+                            } else {
+                                zipInput.copyTo(zipOutput)
+                            }
+                            zipOutput.closeEntry()
+                            entry = zipInput.nextEntry
+                        }
+                    }
+                }
+                Files.move(
+                    temporary.toPath(),
+                    jar.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE,
+                )
+            }
+        }
+    }
+} else {
+    null
+}
+
 dependencies {
     minecraft("com.mojang:minecraft:$mcVersion")
     mappings(loom.officialMojangMappings())
@@ -138,6 +300,17 @@ dependencies {
             //   1.20.1-Forge 无更新 Embeddium，Oculus 又硬依赖它，故此 Forge 版本下 Oculus 光影链不可用。
             // "modLocalRuntime"("maven.modrinth:embeddium:0.3.31+mc1.20.1")
             // "modLocalRuntime"("maven.modrinth:oculus:1.20.1-1.8.0")
+
+            // 可选 Arcana 兼容测试：仅在 Forge runClient/runServer 且显式传入 -PwithArcana=true 时加入。
+            // Arcana 是 hybrid 容器，真正模组位于 META-INF/mod.jar；将内层作为独立 mod 交给 Loom 标准管线重映射。
+            if (withArcana) {
+                add(arcanaRuntimeInput!!.name, "curse.maven:tacz-arcana-1343989:8215461")
+                "modLocalRuntime"(extractedArcanaRuntime!!)
+                "localRuntime"(files(preparedArcanaBootstrap!!.flatMap { it.archiveFile }))
+                "localRuntime"(files(preparedArcanaLibraries!!.flatMap { it.archiveFile }))
+                // KFF 的 all-in-one JAR 内嵌语言提供器；不能走 modLocalRuntime 重映射，否则 JiJ 结构会丢失。
+                "localRuntime"("maven.modrinth:kotlin-for-forge:4.12.0")     // Arcana 硬前置
+            }
         }
     }
 
@@ -154,6 +327,12 @@ dependencies {
 }
 
 tasks {
+    if (patchArcanaRemappedInvoker != null) {
+        matching { it.name == "runClient" || it.name == "runServer" }.configureEach {
+            dependsOn(patchArcanaRemappedInvoker)
+        }
+    }
+
     // 关键：用 Stonecutter 预处理后的源码构建，而非原始源码。
     // Loom 1.11 惰性注册 createMinecraftArtifacts（晚于本块求值），故用 configureEach
     // 惰性挂依赖，避免配置期 named() 抛 UnknownTaskException。

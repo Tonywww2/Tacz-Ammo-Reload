@@ -1,0 +1,8 @@
+modLoader = "lowcodefml"
+loaderVersion = "[47,)"
+license = "All Rights Reserved"
+
+[[mods]]
+modId = "tacz_caliber_ammo_arcana_libraries"
+version = "1.0.0"
+displayName = "TacZ Caliber Ammo Arcana Runtime Libraries"

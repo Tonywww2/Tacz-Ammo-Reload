@@ -1,6 +1,7 @@
 package com.tacz_caliber_ammo.platform;
 
 import com.tacz_caliber_ammo.TaczCaliberAmmo;
+import com.tacz_caliber_ammo.compat.runtime.CompatibilityRuntime;
 
 //? if forge {
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -21,12 +22,14 @@ public final class PlatformModEntry {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         PlatformRegistries.register(modBus);
         PlatformConfig.register();
+        CompatibilityRuntime.initialize();
         TaczCaliberAmmo.LOGGER.info("[{}] TacZ Caliber Ammo loaded.", TaczCaliberAmmo.MODID);
     }
     //?} else {
     /*public PlatformModEntry(IEventBus modBus, ModContainer container) {
         PlatformRegistries.register(modBus);
         PlatformConfig.register(container);
+        CompatibilityRuntime.initialize();
         TaczCaliberAmmo.LOGGER.info("[{}] TacZ Caliber Ammo loaded.", TaczCaliberAmmo.MODID);
     }
     *///?}

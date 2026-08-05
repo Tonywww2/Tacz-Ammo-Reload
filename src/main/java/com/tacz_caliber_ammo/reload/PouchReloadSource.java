@@ -3,12 +3,11 @@ package com.tacz_caliber_ammo.reload;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.tacz.guns.api.item.IAmmo;
-import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.caliber.PatternEntry;
 import com.tacz_caliber_ammo.caliber.Round;
+import com.tacz_caliber_ammo.compat.runtime.CompatibilityRuntime;
 import com.tacz_caliber_ammo.item.AmmoPouchItem;
 import com.tacz_caliber_ammo.platform.PlatformInventory;
 
@@ -20,7 +19,7 @@ import net.minecraft.world.item.ItemStack;
 /**
  * 弹药包换弹供弹（Stage 6 T6.6/T6.7）。策略：<b>弹药包优先、背包兜底</b>。
  *
- * <p>换弹时按弹药包压弹图案（口径过滤后）循环生成逐发弹种：每发先从弹药包 {@code withdraw}，
+ * <p>换弹时按弹药包压弹图案（当前兼容模式过滤后）循环生成逐发弹种：每发先从弹药包 {@code withdraw}，
  * 包内该弹种耗尽则从背包扣<b>同一弹种</b>（{@link #extractSpecific}，TacZ 的 findAndExtractInventoryAmmo
  * 只按槽序扣任意匹配弹药、不认弹种，故此处自扫背包）；两者都没了即停（防死循环）。
  * 返回的逐发序列为<b>图案顺序</b>（图案第 1 项在前 = 先装先发），由调用方写入枪 {@code LoadedSeq}。
@@ -32,10 +31,10 @@ public final class PouchReloadSource {
     }
 
     /** 快捷栏（槽 0-8）首个「能给该枪供弹」的弹药包（见 {@link #canSupply}）；无则 {@link ItemStack#EMPTY}。 */
-    public static ItemStack findUsablePouch(Player player, Set<ResourceLocation> gunCalibers) {
+    public static ItemStack findUsablePouch(Player player, ItemStack gun) {
         for (int i = 0; i <= 8; i++) {
             ItemStack s = player.getInventory().getItem(i);
-            if (canSupply(s, gunCalibers)) {
+            if (canSupply(s, gun)) {
                 return s;
             }
         }
@@ -43,10 +42,10 @@ public final class PouchReloadSource {
     }
 
     /**
-     * 弹药包能否给该枪供弹：<b>有</b>压弹图案(口径过滤后非空)时——图案弹种在存储有货；
-     * <b>无</b>图案时——存储有任一口径匹配弹(换弹将按库存首位序供弹)。只读。
+    * 弹药包能否给当前枪械模式供弹：<b>有</b>有效压弹图案时——图案弹种在存储有货；
+    * <b>无</b>有效图案时——存储有任一策略允许的弹药。只读。
      */
-    public static boolean canSupply(ItemStack pouch, Set<ResourceLocation> gunCalibers) {
+    public static boolean canSupply(ItemStack pouch, ItemStack gun) {
         if (!(pouch.getItem() instanceof AmmoPouchItem)) {
             return false;
         }
@@ -54,10 +53,10 @@ public final class PouchReloadSource {
         if (store.isEmpty()) {
             return false;
         }
-        List<PatternEntry> pat = filterByCaliber(AmmoPouchItem.getPattern(pouch), gunCalibers);
+        List<PatternEntry> pat = filterByGun(AmmoPouchItem.getPattern(pouch), gun);
         if (pat.isEmpty()) {
             for (ResourceLocation ammoId : store.keySet()) {
-                if (gunCalibers.contains(CaliberManager.getAmmoCaliber(ammoId))) {
+                if (CompatibilityRuntime.isAmmoAllowed(gun, ammoId)) {
                     return true;
                 }
             }
@@ -71,17 +70,17 @@ public final class PouchReloadSource {
         return false;
     }
 
-    /** 图案项按口径过滤：只保留 ammoId 所属口径在枪口径集内的项（T6.7）。 */
-    public static List<PatternEntry> filterByCaliber(List<PatternEntry> pattern, Set<ResourceLocation> gunCalibers) {
+    /** 图案项按兼容层弹药策略过滤。 */
+    public static List<PatternEntry> filterByGun(List<PatternEntry> pattern, ItemStack gun) {
         List<PatternEntry> out = new ArrayList<>();
-        if (gunCalibers == null || gunCalibers.isEmpty()) {
+        if (gun.isEmpty()) {
             return out;
         }
         for (PatternEntry pe : pattern) {
             if (pe == null || pe.ammoId() == null || pe.perCycle() <= 0) {
                 continue;
             }
-            if (gunCalibers.contains(CaliberManager.getAmmoCaliber(pe.ammoId()))) {
+            if (CompatibilityRuntime.isAmmoAllowed(gun, pe.ammoId())) {
                 out.add(pe);
             }
         }
@@ -89,12 +88,12 @@ public final class PouchReloadSource {
     }
 
     /** 快捷栏(槽 0-8)是否有「能给该枪供弹」的弹药包(见 {@link #canSupply})；供 canReload 门控识别。只读。 */
-    public static boolean hasUsableAmmo(Player player, Set<ResourceLocation> gunCalibers) {
-        return !findUsablePouch(player, gunCalibers).isEmpty();
+    public static boolean hasUsableAmmo(Player player, ItemStack gun) {
+        return !findUsablePouch(player, gun).isEmpty();
     }
 
-    /** 快捷栏(槽 0-8)弹药包中「口径匹配该枪」的弹药总发数；供 HUD 库存显示叠加。只读。 */
-    public static int countUsableAmmo(Inventory inventory, Set<ResourceLocation> gunCalibers) {
+    /** 快捷栏(槽 0-8)弹药包中当前模式可用的弹药总发数；供 HUD 库存显示叠加。只读。 */
+    public static int countUsableAmmo(Inventory inventory, ItemStack gun) {
         int sum = 0;
         for (int i = 0; i <= 8; i++) {
             ItemStack s = inventory.getItem(i);
@@ -102,7 +101,7 @@ public final class PouchReloadSource {
                 continue;
             }
             for (Map.Entry<ResourceLocation, Integer> e : AmmoPouchItem.getStore(s).entrySet()) {
-                if (gunCalibers.contains(CaliberManager.getAmmoCaliber(e.getKey()))) {
+                if (CompatibilityRuntime.isAmmoAllowed(gun, e.getKey())) {
                     sum += e.getValue();
                 }
             }
@@ -115,15 +114,15 @@ public final class PouchReloadSource {
      * 返回实际扣到的逐发序列（RLE，图案顺序）；某发弹药包与背包都无该弹种即停（不卡死）。空图案返回空表。
      */
     public static List<Round> supply(Player player, ItemStack pouch, int startPos, int need,
-            Set<ResourceLocation> gunCalibers, ItemStack gun) {
+            ItemStack gun) {
         List<Round> result = new ArrayList<>();
         if (need <= 0 || !(pouch.getItem() instanceof AmmoPouchItem)) {
             return result;
         }
-        List<PatternEntry> pat = filterByCaliber(AmmoPouchItem.getPattern(pouch), gunCalibers);
+        List<PatternEntry> pat = filterByGun(AmmoPouchItem.getPattern(pouch), gun);
         if (pat.isEmpty()) {
             // 无压弹图案 -> 按库存首位序供弹（库存首位弹种优先，纯库存不兜底背包）
-            return supplyFromStore(pouch, need, gunCalibers);
+            return supplyFromStore(pouch, need, gun);
         }
         // 展开图案到每发弹种循环：[HP,HP,HP,HP,HP,AP,AP,...]
         List<ResourceLocation> cycle = new ArrayList<>();
@@ -177,14 +176,14 @@ public final class PouchReloadSource {
      * 无压弹图案时的供弹：按存储顺序(首位弹种优先)取口径匹配弹药，直到凑满 {@code need} 或库存匹配弹耗尽。
      * 纯库存(不从背包兜底)——契合「无图案时直接使用库存补弹」。返回库存首位序的 RLE 序列。
      */
-    private static List<Round> supplyFromStore(ItemStack pouch, int need, Set<ResourceLocation> gunCalibers) {
+    private static List<Round> supplyFromStore(ItemStack pouch, int need, ItemStack gun) {
         List<Round> result = new ArrayList<>();
         int left = need;
         for (ResourceLocation ammoId : new ArrayList<>(AmmoPouchItem.getStore(pouch).keySet())) {
             if (left <= 0) {
                 break;
             }
-            if (!gunCalibers.contains(CaliberManager.getAmmoCaliber(ammoId))) {
+            if (!CompatibilityRuntime.isAmmoAllowed(gun, ammoId)) {
                 continue;
             }
             int got = AmmoPouchItem.withdraw(pouch, ammoId, left);

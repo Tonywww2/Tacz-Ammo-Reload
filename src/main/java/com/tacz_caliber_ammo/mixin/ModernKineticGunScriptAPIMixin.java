@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -12,23 +11,21 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import com.tacz.guns.api.item.IAmmo;
 import com.tacz.guns.api.item.IAmmoBox;
-import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.gun.AbstractGunItem;
 import com.tacz.guns.api.DefaultAssets;
 import com.tacz.guns.item.ModernKineticGunScriptAPI;
 import com.tacz.guns.resource.index.CommonGunIndex;
 import com.tacz.guns.resource.pojo.data.gun.Bolt;
-import com.tacz.guns.resource.pojo.data.gun.BulletData;
-import com.tacz.guns.resource.pojo.data.gun.GunData;
 import com.tacz_caliber_ammo.caliber.AmmoProfile;
 import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.caliber.Round;
+import com.tacz_caliber_ammo.compat.runtime.CompatibilityRuntime;
 import com.tacz_caliber_ammo.platform.config.ModConfig;
 import com.tacz_caliber_ammo.nbt.LoadedAmmoSequence;
 import com.tacz_caliber_ammo.platform.PlatformInventory;
@@ -45,7 +42,7 @@ import net.minecraft.world.item.ItemStack;
  * PB-2：换弹写序列 + 发射出队。
  * - 换弹：consumeAmmoFromPlayer 前后对背包弹药差分，得到实际消耗的 (ammoId,count)；
  *   putAmmoInMagazine 之后把它们追加进枪 LoadedSeq 并 reconcile 到新弹匣数。
- * - 发射：@Redirect 发射 lambda 里 gunData.getAmmoId()，改为出队 LoadedSeq 队首弹种（空则回退原弹种）。
+ * - 发射：修改发射 lambda 已解析出的 ammoId，改为出队 LoadedSeq 队首弹种（空则保留上游弹种）。
  */
 @Mixin(value = ModernKineticGunScriptAPI.class, remap = false)
 public class ModernKineticGunScriptAPIMixin {
@@ -95,16 +92,13 @@ public class ModernKineticGunScriptAPIMixin {
         this.tacz_caliber_ammo$pouchSupplied = false;
         // 弹药包优先：快捷栏(槽 0-8)有「图案(口径过滤后)非空」弹药包时，按图案从包内(不足回退背包同弹种)供弹，
         // 接管本次消耗(setReturnValue 取消原背包扣弹逻辑)。供不上(包+背包都无匹配弹种)则不接管，走原逻辑。
-        if (this.shooter instanceof Player player && this.itemStack != null
-                && this.itemStack.getItem() instanceof IGun gun) {
-            Set<ResourceLocation> calibers = CaliberManager.getGunCalibers(gun.getGunId(this.itemStack));
-            ItemStack pouch = PouchReloadSource.findUsablePouch(player, calibers);
+        if (this.shooter instanceof Player player && this.itemStack != null) {
+            ItemStack pouch = PouchReloadSource.findUsablePouch(player, this.itemStack);
             if (!pouch.isEmpty()) {
                 // 图案位置取当前弹匣数(弹匣枪逐发换弹随之推进图案循环)。INVENTORY 供弹枪(如 M134)currentAmmoCount
                 // 恒 0 -> startPos 恒 0 = 始终用「首位匹配弹」: 有 pattern 取 pattern 首项、无 pattern 取 store 首项, 不循环。
                 int startPos = this.abstractGunItem.getCurrentAmmoCount(this.itemStack);
-                List<Round> seq = PouchReloadSource.supply(player, pouch, startPos, neededAmount, calibers,
-                        this.itemStack);
+                List<Round> seq = PouchReloadSource.supply(player, pouch, startPos, neededAmount, this.itemStack);
                 int total = 0;
                 for (Round r : seq) {
                     total += r.count();
@@ -252,10 +246,8 @@ public class ModernKineticGunScriptAPIMixin {
         return null;
     }
 
-    @Redirect(method = "lambda$shootOnce$2",
-            at = @At(value = "INVOKE",
-                    target = "Lcom/tacz/guns/resource/pojo/data/gun/GunData;getAmmoId()Lnet/minecraft/resources/ResourceLocation;"))
-    private ResourceLocation tacz_caliber_ammo$dequeue(GunData gunData) {
+        @ModifyVariable(method = "lambda$shootOnce$2", at = @At("STORE"), index = 15)
+        private ResourceLocation tacz_caliber_ammo$dequeue(ResourceLocation resolvedAmmoId) {
         ResourceLocation id;
         if (tacz_caliber_ammo$isInventoryFed()) {
             // INVENTORY 供弹(如 M134 转管机枪, reload.type=inventory): 弹药实时从背包/弹药包扣
@@ -295,7 +287,7 @@ public class ModernKineticGunScriptAPIMixin {
             }
         }
         if (id == null) {
-            id = gunData.getAmmoId();
+            id = resolvedAmmoId;
         }
         this.tacz_caliber_ammo$firingAmmoId = id;
         return id;
@@ -406,18 +398,10 @@ public class ModernKineticGunScriptAPIMixin {
     }
 
     /** 弹丸数：预读队首弹种；pelletCount>0 时覆写每发子弹数（每次扣扳机级，非逐发）。 */
-    @Redirect(method = "shootOnce",
-            at = @At(value = "INVOKE",
-                    target = "Lcom/tacz/guns/resource/pojo/data/gun/BulletData;getBulletAmount()I"))
-    private int tacz_caliber_ammo$ammoPelletCount(BulletData bulletData) {
+    @ModifyVariable(method = "lambda$shootOnce$2", at = @At("HEAD"), argsOnly = true, index = 3)
+    private int tacz_caliber_ammo$ammoPelletCount(int resolvedBulletAmount) {
         ResourceLocation next = tacz_caliber_ammo$peekNext();
-        if (next != null) {
-            AmmoProfile p = CaliberManager.getAmmoProfile(next);
-            if (p != null && p.pelletCount() > 0) {
-                return p.pelletCount();
-            }
-        }
-        return bulletData.getBulletAmount();
+        return CompatibilityRuntime.resolveBulletAmount(this.itemStack, next, resolvedBulletAmount);
     }
 
     /**

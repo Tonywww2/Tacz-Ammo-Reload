@@ -1,14 +1,11 @@
 package com.tacz_caliber_ammo.mixin;
 
-import java.util.Set;
-
 import org.spongepowered.asm.mixin.Mixin;
 
-import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IAmmo;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.item.AmmoItem;
-import com.tacz_caliber_ammo.caliber.CaliberManager;
+import com.tacz_caliber_ammo.compat.runtime.CompatibilityRuntime;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -24,19 +21,8 @@ public abstract class AmmoItemDataAccessorMixin {
 
     public boolean isAmmoOfGun(ItemStack gun, ItemStack ammo) {
         if (gun.getItem() instanceof IGun iGun && ammo.getItem() instanceof IAmmo iAmmo) {
-            ResourceLocation gunId = iGun.getGunId(gun);
             ResourceLocation ammoId = iAmmo.getAmmoId(ammo);
-            ResourceLocation ammoCaliber = CaliberManager.getAmmoCaliber(ammoId);
-            // 万用口径: 配置为此口径的弹药对全部枪械生效
-            if (CaliberManager.UNIVERSAL.equals(ammoCaliber)) {
-                return true;
-            }
-            Set<ResourceLocation> gunCalibers = CaliberManager.getGunCalibers(gunId);
-            if (!gunCalibers.isEmpty() && ammoCaliber != null) {
-                return gunCalibers.contains(ammoCaliber);
-            }
-            return TimelessAPI.getCommonGunIndex(gunId)
-                    .map(index -> index.getGunData().getAmmoId().equals(ammoId)).orElse(false);
+            return CompatibilityRuntime.isAmmoAllowed(gun, ammoId);
         }
         return false;
     }

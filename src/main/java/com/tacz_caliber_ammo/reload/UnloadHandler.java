@@ -7,6 +7,7 @@ import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.builder.AmmoItemBuilder;
 import com.tacz_caliber_ammo.caliber.Round;
+import com.tacz_caliber_ammo.compat.runtime.CompatibilityRuntime;
 import com.tacz_caliber_ammo.nbt.LoadedAmmoSequence;
 import com.tacz_caliber_ammo.platform.PlatformItems;
 
@@ -33,19 +34,19 @@ public final class UnloadHandler {
             return;
         }
         int count = iGun.getCurrentAmmoCount(gun);
-        if (count <= 0) {
-            LoadedAmmoSequence.setSequence(gun, Collections.emptyList());
-            LoadedAmmoSequence.setBarrelAmmo(gun, null);
-            return;
-        }
-        ResourceLocation defaultAmmo = TimelessAPI.getCommonGunIndex(iGun.getGunId(gun))
-                .map(index -> index.getGunData().getAmmoId())
-                .orElse(null);
+        ResourceLocation defaultAmmo = CompatibilityRuntime.resolveGunMode(gun).logicalAmmoId();
         // 先按真实弹匣数对齐序列（旧存档/外部装弹/desync），再逐段读取。
-        LoadedAmmoSequence.reconcile(gun, count, defaultAmmo);
         List<Round> sequence = LoadedAmmoSequence.getSequence(gun);
+        int trackedCount = sequence.stream().mapToInt(Round::count).sum();
+        boolean hasBarrel = iGun.hasBulletInBarrel(gun);
+        boolean countIncludesBarrel = hasBarrel && trackedCount + 1 == count;
+        if (!countIncludesBarrel) {
+            LoadedAmmoSequence.reconcile(gun, count, defaultAmmo);
+            sequence = LoadedAmmoSequence.getSequence(gun);
+        }
         if (sequence.isEmpty() && defaultAmmo != null) {
-            sequence = List.of(new Round(defaultAmmo, count));
+            int fallbackCount = countIncludesBarrel ? Math.max(0, count - 1) : count;
+            sequence = fallbackCount > 0 ? List.of(new Round(defaultAmmo, fallbackCount)) : List.of();
         }
 
         // 归还弹药：创造模式与 dummy 弹药（非 item）只清空不归还。
@@ -55,8 +56,8 @@ public final class UnloadHandler {
                 giveAmmo(player, round.ammoId(), round.count());
             }
             // 膛内弹（TacZ 膛内那发，不在弹匣序列里）若有跟踪弹种也归还一发
-            if (barrelAmmo != null && iGun.hasBulletInBarrel(gun)) {
-                giveAmmo(player, barrelAmmo, 1);
+            if (hasBarrel) {
+                giveAmmo(player, barrelAmmo != null ? barrelAmmo : defaultAmmo, 1);
             }
         }
 

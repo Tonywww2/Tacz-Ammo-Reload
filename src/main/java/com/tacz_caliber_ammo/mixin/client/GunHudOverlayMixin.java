@@ -1,7 +1,5 @@
 package com.tacz_caliber_ammo.mixin.client;
 
-import java.util.Set;
-
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -10,10 +8,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.client.gui.overlay.GunHudOverlay;
-import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.reload.PouchReloadSource;
 
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 
@@ -36,7 +32,6 @@ public class GunHudOverlayMixin {
         if (!(stack.getItem() instanceof IGun gun)) {
             return;
         }
-        Set<ResourceLocation> calibers = CaliberManager.getGunCalibers(gun.getGunId(stack));
-        cacheInventoryAmmoCount += PouchReloadSource.countUsableAmmo(inventory, calibers);
+        cacheInventoryAmmoCount += PouchReloadSource.countUsableAmmo(inventory, stack);
     }
 }

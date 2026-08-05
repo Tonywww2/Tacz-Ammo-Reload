@@ -576,7 +576,15 @@ record Caliber(ResourceLocation id, String name);
 ./gradlew :1.20.1-forge:runClient
 ./gradlew :1.21.1-neoforge:runServer
 ./gradlew :1.21.1-neoforge:runClient
+
+# Forge 1.20.1：额外加载 Arcana 及其运行库，验证可选兼容层
+./gradlew :1.20.1-forge:runServer -PwithArcana=true
+./gradlew :1.20.1-forge:runClient -PwithArcana=true
 ```
+
+`withArcana` 默认关闭，仅对 Forge 1.20.1 的 `runClient` / `runServer` 生效；普通开发运行、构建、
+数据生成和 NeoForge 节点均不会附带 Arcana。该模式会从 Arcana hybrid 发布包中准备开发环境所需的
+bootstrap、经 Loom 重映射的内层模组及 Jar-in-Jar 运行库，产物只用于本地测试，不会写入发布依赖。
 
 内置内容由 `datagen/CaliberAmmoDataProvider` 从 `docs/tarkov_ammo_stats.csv` 全量生成：
 

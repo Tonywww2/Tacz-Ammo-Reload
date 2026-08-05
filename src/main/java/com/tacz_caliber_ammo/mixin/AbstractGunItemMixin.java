@@ -12,11 +12,12 @@ import com.tacz.guns.api.item.gun.AbstractGunItem;
 import com.tacz.guns.entity.shooter.ShooterDataHolder;
 import com.tacz.guns.resource.index.CommonGunIndex;
 import com.tacz.guns.util.AttachmentDataUtils;
-import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.duck.ISpeedDecayBullet;
 import com.tacz_caliber_ammo.reload.PouchReloadSource;
+import com.tacz_caliber_ammo.reload.UnloadHandler;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
@@ -25,9 +26,8 @@ import net.minecraft.world.item.ItemStack;
 /**
  * Patches on TacZ AbstractGunItem (TacZ-owned methods, remap=false):
  * <ul>
- * <li>dropAllAmmo: cancelled. It only drops the magazine, ignores the chambered round, and returns
- * the gun default ammo type (losing mixed loaded types); in creative it refills instead of emptying.
- * Replaced by reload.AttachmentAmmoHandler (network-packet hook) using our LoadedSeq real types.</li>
+ * <li>dropAllAmmo: replaced with the mode-aware unload service so mixed and chambered rounds retain
+ * their actual ammo IDs.</li>
  * <li>canReload: patched so ammo held in an Ammo Pouch counts as available ammo.</li>
  * <li>doBulletSpread: sets flight friction (speed decay) for this mod's ammo before spawn.</li>
  * </ul>
@@ -37,6 +37,9 @@ public class AbstractGunItemMixin {
 
     @Inject(method = "dropAllAmmo", at = @At("HEAD"), cancellable = true, remap = false)
     private void tacz_caliber_ammo$cancelVanillaDropAllAmmo(Player player, ItemStack gunItem, CallbackInfo ci) {
+        if (player instanceof ServerPlayer serverPlayer) {
+            UnloadHandler.unload(serverPlayer, gunItem);
+        }
         ci.cancel();
     }
 
@@ -68,7 +71,7 @@ public class AbstractGunItemMixin {
                 idx.getGunData())) {
             return;
         }
-        if (PouchReloadSource.hasUsableAmmo(player, CaliberManager.getGunCalibers(gunId))) {
+        if (PouchReloadSource.hasUsableAmmo(player, gunItem)) {
             cir.setReturnValue(true);
         }
     }
@@ -91,11 +94,10 @@ public class AbstractGunItemMixin {
         if (!self.useInventoryAmmo(gun) || self.useDummyAmmo(gun)) {
             return; // non-inventory guns' false is correct; dummy ammo handled by vanilla
         }
-        if (!(shooter instanceof Player player) || !(gun.getItem() instanceof IGun iGun)) {
+        if (!(shooter instanceof Player player) || !(gun.getItem() instanceof IGun)) {
             return;
         }
-        ResourceLocation gunId = iGun.getGunId(gun);
-        if (PouchReloadSource.hasUsableAmmo(player, CaliberManager.getGunCalibers(gunId))) {
+        if (PouchReloadSource.hasUsableAmmo(player, gun)) {
             cir.setReturnValue(true);
         }
     }

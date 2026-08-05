@@ -1,16 +1,13 @@
 package com.tacz_caliber_ammo.mixin;
 
-import java.util.Set;
-
 import org.spongepowered.asm.mixin.Mixin;
 
 import com.tacz.guns.api.DefaultAssets;
-import com.tacz.guns.api.TimelessAPI;
 import com.tacz.guns.api.item.IAmmoBox;
 import com.tacz.guns.api.item.IGun;
 import com.tacz.guns.api.item.nbt.AmmoBoxItemDataAccessor;
 import com.tacz.guns.item.AmmoBoxItem;
-import com.tacz_caliber_ammo.caliber.CaliberManager;
+import com.tacz_caliber_ammo.compat.runtime.CompatibilityRuntime;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -33,14 +30,7 @@ public abstract class AmmoBoxItemDataAccessorMixin {
             if (ammoId.equals(DefaultAssets.EMPTY_AMMO_ID)) {
                 return false;
             }
-            ResourceLocation gunId = iGun.getGunId(gun);
-            Set<ResourceLocation> gunCalibers = CaliberManager.getGunCalibers(gunId);
-            ResourceLocation ammoCaliber = CaliberManager.getAmmoCaliber(ammoId);
-            if (!gunCalibers.isEmpty() && ammoCaliber != null) {
-                return gunCalibers.contains(ammoCaliber);
-            }
-            return TimelessAPI.getCommonGunIndex(gunId)
-                    .map(index -> index.getGunData().getAmmoId().equals(ammoId)).orElse(false);
+            return CompatibilityRuntime.isAmmoAllowed(gun, ammoId);
         }
         return false;
     }
