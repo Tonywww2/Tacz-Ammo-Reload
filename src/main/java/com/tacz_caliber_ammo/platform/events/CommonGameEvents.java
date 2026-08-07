@@ -9,9 +9,11 @@ import com.tacz_caliber_ammo.caliber.GunCaliberModifyBootstrap;
 import com.tacz_caliber_ammo.effect.AmmoEffectEvents;
 import com.tacz_caliber_ammo.effect.EffectScriptManager;
 import com.tacz_caliber_ammo.event.BulletCreatedEvent;
+import com.tacz_caliber_ammo.platform.PlatformNetwork;
 
 //? if forge {
 import net.minecraftforge.event.AddReloadListenerEvent;
+import net.minecraftforge.event.OnDatapackSyncEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -19,6 +21,7 @@ import net.minecraftforge.fml.common.Mod;
 /*import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 *///?}
 
@@ -34,6 +37,15 @@ public final class CommonGameEvents {
         event.addListener(CaliberDataBootstrap.listener());
         event.addListener(GunCaliberModifyBootstrap.listener());
         event.addListener(EffectScriptManager.listener());
+    }
+
+    @SubscribeEvent
+    public static void onDatapackSync(OnDatapackSyncEvent event) {
+        if (event.getPlayer() != null) {
+            PlatformNetwork.syncCaliberData(event.getPlayer());
+            return;
+        }
+        event.getPlayerList().getPlayers().forEach(PlatformNetwork::syncCaliberData);
     }
 
     @SubscribeEvent

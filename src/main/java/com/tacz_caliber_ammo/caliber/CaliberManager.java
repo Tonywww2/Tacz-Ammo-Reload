@@ -175,6 +175,33 @@ public final class CaliberManager {
         return (md != null) ? md : GUN.get(gunId);
     }
 
+    /** Creates the server-authoritative data snapshot sent to clients after datapack synchronization. */
+    public static CaliberSyncSnapshot createSyncSnapshot() {
+        Map<ResourceLocation, Set<ResourceLocation>> modified = new HashMap<>();
+        MODIFY.forEach((id, calibers) -> modified.put(id, Set.copyOf(calibers)));
+        return new CaliberSyncSnapshot(
+                Map.copyOf(AMMO), Map.copyOf(GUN), Map.copyOf(CALIBERS),
+                Map.copyOf(modified), Map.copyOf(MODIFY_DMG));
+    }
+
+    /** Replaces client-side tables with the snapshot supplied by the connected server. */
+    public static void applySyncSnapshot(CaliberSyncSnapshot snapshot) {
+        AMMO.clear();
+        AMMO.putAll(snapshot.ammo());
+        GUN.clear();
+        GUN.putAll(snapshot.guns());
+        CALIBERS.clear();
+        CALIBERS.putAll(snapshot.calibers());
+        MODIFY.clear();
+        snapshot.modifiedGunCalibers().forEach(
+                (id, calibers) -> MODIFY.put(id, Set.copyOf(calibers)));
+        MODIFY_DMG.clear();
+        MODIFY_DMG.putAll(snapshot.modifiedGunDamage());
+        rebuildNativeProfiles();
+        LOGGER.info("[tacz_caliber_ammo] synchronized {} ammo profile(s), {} caliber(s), and {} modified gun(s)",
+                AMMO.size(), CALIBERS.size(), MODIFY.size());
+    }
+
     /** 口径定义（name + 由 id 派生的 tooltip 键）；未定义时回退为 id 自身（name=路径）。 */
     public static Caliber getCaliber(ResourceLocation caliberId) {
         Caliber c = CALIBERS.get(caliberId);

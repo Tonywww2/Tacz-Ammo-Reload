@@ -1,18 +1,23 @@
 package com.tacz_caliber_ammo.platform;
 
 import com.tacz_caliber_ammo.TaczCaliberAmmo;
+import com.tacz_caliber_ammo.caliber.CaliberManager;
 import com.tacz_caliber_ammo.network.CMsgPouchDeposit;
 import com.tacz_caliber_ammo.network.CMsgPouchPattern;
 import com.tacz_caliber_ammo.network.CMsgPouchWithdraw;
 import com.tacz_caliber_ammo.network.CMsgUnloadAmmo;
+import com.tacz_caliber_ammo.network.SMsgCaliberData;
 
 import net.minecraft.server.level.ServerPlayer;
 //? if forge {
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import net.minecraftforge.network.NetworkDirection;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
+import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.network.simple.SimpleChannel;
 //?} else {
 /*import java.util.function.Consumer;
@@ -26,10 +31,10 @@ import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 *///?}
 
-/** Loader-specific C2S transport. Shared request validation remains in the CMsg records. */
+/** Loader-specific C2S transport and server-authoritative caliber data synchronization. */
 public final class PlatformNetwork {
 
-    private static final String PROTOCOL_VERSION = "1";
+        private static final String PROTOCOL_VERSION = "2";
 
     //? if forge {
     private static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
@@ -49,9 +54,13 @@ public final class PlatformNetwork {
         CHANNEL.registerMessage(id++, CMsgPouchPattern.class,
                 CMsgPouchPattern::encode, CMsgPouchPattern::decode,
                 (message, context) -> handleForge(message::handle, context));
-        CHANNEL.registerMessage(id, CMsgPouchDeposit.class,
+        CHANNEL.registerMessage(id++, CMsgPouchDeposit.class,
                 CMsgPouchDeposit::encode, CMsgPouchDeposit::decode,
                 (message, context) -> handleForge(message::handle, context));
+        CHANNEL.registerMessage(id, SMsgCaliberData.class,
+                SMsgCaliberData::encode, SMsgCaliberData::decode,
+                (message, context) -> handleForgeClient(message::handle, context),
+                Optional.of(NetworkDirection.PLAY_TO_CLIENT));
     }
 
     private static void handleForge(Consumer<ServerPlayer> handler, Supplier<NetworkEvent.Context> contextSupplier) {
@@ -65,10 +74,20 @@ public final class PlatformNetwork {
         context.setPacketHandled(true);
     }
 
+        private static void handleForgeClient(Runnable handler, Supplier<NetworkEvent.Context> contextSupplier) {
+                NetworkEvent.Context context = contextSupplier.get();
+                context.enqueueWork(handler);
+                context.setPacketHandled(true);
+        }
+
     public static void send(CMsgUnloadAmmo message) { CHANNEL.sendToServer(message); }
     public static void send(CMsgPouchWithdraw message) { CHANNEL.sendToServer(message); }
     public static void send(CMsgPouchPattern message) { CHANNEL.sendToServer(message); }
     public static void send(CMsgPouchDeposit message) { CHANNEL.sendToServer(message); }
+        public static void syncCaliberData(ServerPlayer player) {
+                CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
+                                new SMsgCaliberData(CaliberManager.createSyncSnapshot()));
+        }
     //?} else {
     /*public static void register(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar(PROTOCOL_VERSION);
@@ -80,6 +99,8 @@ public final class PlatformNetwork {
                 (payload, context) -> handleNeoForge(payload.message()::handle, context));
         registrar.playToServer(DepositPayload.TYPE, DepositPayload.CODEC,
                 (payload, context) -> handleNeoForge(payload.message()::handle, context));
+        registrar.playToClient(CaliberDataPayload.TYPE, CaliberDataPayload.CODEC,
+                (payload, context) -> context.enqueueWork(payload.message()::handle));
     }
 
     private static void handleNeoForge(Consumer<ServerPlayer> handler, IPayloadContext context) {
@@ -92,6 +113,10 @@ public final class PlatformNetwork {
     public static void send(CMsgPouchWithdraw message) { PacketDistributor.sendToServer(new WithdrawPayload(message)); }
     public static void send(CMsgPouchPattern message) { PacketDistributor.sendToServer(new PatternPayload(message)); }
     public static void send(CMsgPouchDeposit message) { PacketDistributor.sendToServer(new DepositPayload(message)); }
+        public static void syncCaliberData(ServerPlayer player) {
+                PacketDistributor.sendToPlayer(player,
+                                new CaliberDataPayload(new SMsgCaliberData(CaliberManager.createSyncSnapshot())));
+        }
 
     private record UnloadPayload(CMsgUnloadAmmo message) implements CustomPacketPayload {
         private static final Type<UnloadPayload> TYPE = new Type<>(TaczCaliberAmmo.prefix("unload_ammo"));
@@ -124,6 +149,14 @@ public final class PlatformNetwork {
                 buffer -> new DepositPayload(CMsgPouchDeposit.decode(buffer)));
         @Override public Type<DepositPayload> type() { return TYPE; }
     }
+
+        private record CaliberDataPayload(SMsgCaliberData message) implements CustomPacketPayload {
+                private static final Type<CaliberDataPayload> TYPE = new Type<>(TaczCaliberAmmo.prefix("caliber_data"));
+                private static final StreamCodec<RegistryFriendlyByteBuf, CaliberDataPayload> CODEC = StreamCodec.of(
+                                (buffer, payload) -> payload.message().encode(buffer),
+                                buffer -> new CaliberDataPayload(SMsgCaliberData.decode(buffer)));
+                @Override public Type<CaliberDataPayload> type() { return TYPE; }
+        }
     *///?}
 
     private PlatformNetwork() {
