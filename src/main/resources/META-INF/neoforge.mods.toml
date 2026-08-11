@@ -30,10 +30,3 @@ type = "required"
 versionRange = "[1.21.1]"
 ordering = "NONE"
 side = "BOTH"
-
-[[dependencies.tacz_caliber_ammo]]
-modId = "tacz"
-type = "required"
-versionRange = ""
-ordering = "AFTER"
-side = "BOTH"
